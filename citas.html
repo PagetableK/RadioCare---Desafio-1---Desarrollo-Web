@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar cita | RadioCare</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/citas.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="contenedor header__barra">
+            <a class="logo" href="index.html" aria-label="RadioCare, ir al inicio">
+                <svg viewBox="0 0 32 32" fill="none" stroke="#b1a6f6" stroke-width="2" aria-hidden="true">
+                    <circle cx="16" cy="16" r="13" />
+                    <path d="M5 17h6l3-7 4 12 3-5h6" stroke="#00b1ff" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Radio<span>Care</span>
+            </a>
+            <nav class="nav" aria-label="Navegación principal">
+                <input type="checkbox" id="menu" class="nav__toggle" aria-label="Abrir menú">
+                <label for="menu" class="nav__boton" aria-hidden="true"><i></i><i></i><i></i></label>
+                <ul class="nav__lista">
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="servicios.html">Servicios</a></li>
+                    <li><a href="nosotros.html">Nosotros</a></li>
+                    <li><a class="btn btn--primario" href="citas.html" aria-current="page">Agendar cita</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main id="contenido">
+
+        <section class="ct-hero seccion">
+            <div class="contenedor ct-hero__inner">
+                <p class="etiqueta-ct">Agenda en línea</p>
+                <h1>Agende su estudio o solicite una cotización</h1>
+                <p>Complete el formulario y uno de nuestros coordinadores de citas confirmará su horario dentro de las
+                    próximas
+                    2 horas hábiles. Atendemos de lunes a viernes de 6:30 a.&nbsp;m. a 7:00 p.&nbsp;m. y sábados de 7:00
+                    a.&nbsp;m. a 1:00 p.&nbsp;m.</p>
+            </div>
+        </section>
+
+        <section class="seccion ct-layout" aria-labelledby="t-form">
+            <div class="contenedor ct-layout__flex">
+
+                <div class="form-wrap">
+
+                    <form class="citas-form" action="" method="post" novalidate>
+
+                        <fieldset class="fieldset">
+                            <legend class="legend">Datos del paciente</legend>
+
+                            <div class="campo-grupo campo-grupo--2col">
+                                <div class="campo">
+                                    <label for="nombre" class="label">Nombres <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <input type="text" id="nombre" name="nombre" class="input"
+                                        placeholder="Ej. María Elena" required minlength="2" maxlength="60"
+                                        autocomplete="given-name" title="Ingrese sus nombres (mínimo 2 caracteres)">
+                                    <span class="ayuda" id="nombre-ayuda">Solo letras y espacios.</span>
+                                </div>
+                                <div class="campo">
+                                    <label for="apellidos" class="label">Apellidos <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <input type="text" id="apellidos" name="apellidos" class="input"
+                                        placeholder="Ej. Torres Ramírez" required minlength="2" maxlength="80"
+                                        autocomplete="family-name" title="Ingrese sus apellidos (mínimo 2 caracteres)">
+                                    <span class="ayuda" id="nombre-ayuda">Solo letras y espacios.</span>
+                                </div>
+                            </div>
+
+                            <div class="campo-grupo campo-grupo--2col">
+                                <div class="campo">
+                                    <label for="dui" class="label">DUI o pasaporte <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <input type="text" id="dui" name="dui" class="input" placeholder="00000000-0"
+                                        required pattern="(\d{8}-\d|\d{9}|[A-Z]{1,2}\d{6,9})" maxlength="20"
+                                        autocomplete="off"
+                                        title="DUI sin guion (9 dígitos), con guion (00000000-0) o número de pasaporte"
+                                        aria-describedby="dui-ayuda">
+                                    <span class="ayuda" id="dui-ayuda">DUI: 00000000-0. Pasaporte: letras y
+                                        números.</span>
+                                </div>
+                                <div class="campo">
+                                    <label for="nacimiento" class="label">Fecha de nacimiento <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <input type="date" id="nacimiento" name="nacimiento" class="input" required
+                                        min="1920-01-01" max="2016-12-31" autocomplete="bday"
+                                        title="Ingrese su fecha de nacimiento">
+                                </div>
+                            </div>
+
+                            <div class="campo-grupo campo-grupo--2col">
+                                <div class="campo">
+                                    <label for="sexo" class="label">Sexo biológico <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <select id="sexo" name="sexo" class="select" required
+                                        title="Requerido para protocolos radiológicos" aria-describedby="sexo-ayuda">
+                                        <option value="">Seleccione…</option>
+                                        <option value="F">Femenino</option>
+                                        <option value="M">Masculino</option>
+                                    </select>
+                                    <span class="ayuda" id="sexo-ayuda">Necesario para protocolos de
+                                        radioprotección.</span>
+                                </div>
+                                <div class="campo">
+                                    <label for="embarazo" class="label">¿Podría estar embarazada? <span
+                                            class="requerido" aria-hidden="true">*</span></label>
+                                    <select id="embarazo" name="embarazo" class="select" required
+                                        title="Requerido para estudios con radiación">
+                                        <option value="">Seleccione…</option>
+                                        <option value="no">No</option>
+                                        <option value="si">Sí</option>
+                                        <option value="posible">Posiblemente</option>
+                                        <option value="na">No aplica</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                        </fieldset>
+
+                        <fieldset class="fieldset">
+                            <legend class="legend">Contacto</legend>
+
+                            <div class="campo">
+                                <label for="email" class="label">Correo electrónico <span class="requerido"
+                                        aria-hidden="true">*</span></label>
+                                <input type="email" id="email" name="email" class="input"
+                                    placeholder="usuario@correo.com" required maxlength="120" autocomplete="email"
+                                    title="Ingrese un correo electrónico válido. Aquí recibirá el enlace a sus resultados."
+                                    aria-describedby="email-ayuda">
+                                <span class="ayuda" id="email-ayuda">A este correo enviaremos el enlace a sus resultados
+                                    DICOM.</span>
+                            </div>
+
+                            <div class="campo-grupo campo-grupo--2col">
+                                <div class="campo">
+                                    <label for="telefono" class="label">Teléfono / WhatsApp <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <input type="tel" id="telefono" name="telefono" class="input"
+                                        placeholder="7000-0000" required pattern="(\+503 )?\d{4}-\d{4}"
+                                        autocomplete="tel"
+                                        title="Número de teléfono o WhatsApp donde podamos confirmar la cita"
+                                        aria-describedby="tel-ayuda">
+                                    <span class="ayuda" id="tel-ayuda">Formato: 0000-0000.</span>
+                                </div>
+                                <div class="campo">
+                                    <label for="medico" class="label">Médico que ordena el estudio</label>
+                                    <input type="text" id="medico" name="medico" class="input"
+                                        placeholder="Dr. / Dra. nombre" maxlength="100" autocomplete="off"
+                                        title="Nombre del médico que emite la orden de estudio (opcional)">
+                                </div>
+                            </div>
+
+                        </fieldset>
+
+                        <fieldset class="fieldset">
+                            <legend class="legend">Estudio solicitado</legend>
+
+                            <div class="campo-grupo campo-grupo--2col">
+                                <div class="campo">
+                                    <label for="estudio" class="label">Tipo de estudio <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <select id="estudio" name="estudio" class="select" required
+                                        title="Seleccione el tipo de estudio que necesita"
+                                        aria-describedby="estudio-ayuda">
+                                        <option value="">Seleccione…</option>
+                                        <optgroup label="Resonancia Magnética">
+                                            <option value="rm-craneo">RM de cráneo y cerebro</option>
+                                            <option value="rm-columna-cervical">RM de columna cervical</option>
+                                            <option value="rm-columna-lumbar">RM de columna lumbar</option>
+                                            <option value="rm-rodilla">RM de rodilla</option>
+                                            <option value="rm-hombro">RM de hombro</option>
+                                            <option value="rm-abdomen">RM de abdomen y pelvis</option>
+                                            <option value="rm-mama">RM de mama con contraste</option>
+                                            <option value="rm-cardiaca">RM cardíaca funcional</option>
+                                        </optgroup>
+                                        <optgroup label="Tomografía Computarizada">
+                                            <option value="tc-torax">TC de tórax TCAR</option>
+                                            <option value="tc-abdomen">TC de abdomen y pelvis</option>
+                                            <option value="tc-craneo">TC de cráneo simple</option>
+                                            <option value="tc-angio-coronaria">Angiotomografía coronaria</option>
+                                            <option value="tc-angio-pulmonar">Angiotomografía pulmonar</option>
+                                        </optgroup>
+                                        <optgroup label="Ultrasonido">
+                                            <option value="us-abdominal">Ultrasonido abdominal</option>
+                                            <option value="us-doppler-arterial">Doppler arterial de miembros</option>
+                                            <option value="us-doppler-venoso">Doppler venoso de miembros</option>
+                                            <option value="us-carotideo">Doppler carotídeo</option>
+                                            <option value="us-tiroides">Ultrasonido de tiroides</option>
+                                            <option value="us-mama">Ultrasonido de mama</option>
+                                            <option value="us-obstetrico">Ultrasonido obstétrico</option>
+                                        </optgroup>
+                                        <optgroup label="Rayos X">
+                                            <option value="rx-torax">Rayos X de tórax</option>
+                                            <option value="rx-columna">Rayos X de columna</option>
+                                            <option value="rx-huesos">Rayos X de huesos largos</option>
+                                            <option value="rx-senos">Rayos X de senos paranasales</option>
+                                        </optgroup>
+                                        <optgroup label="Densitometría">
+                                            <option value="dxa">Densitometría ósea DEXA</option>
+                                        </optgroup>
+                                    </select>
+                                    <span class="ayuda" id="estudio-ayuda">Si tiene orden médica, verifique el nombre
+                                        exacto del
+                                        estudio.</span>
+                                </div>
+                                <div class="campo">
+                                    <label for="modalidad" class="label">Modalidad de solicitud <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <select id="modalidad" name="modalidad" class="select" required
+                                        title="Indique si quiere agendar una cita o solo recibir una cotización">
+                                        <option value="">Seleccione…</option>
+                                        <option value="cita">Agendar cita con fecha</option>
+                                        <option value="cotizacion">Solo solicitar cotización</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="campo">
+                                <label for="orden" class="label">¿Tiene orden médica escrita?</label>
+                                <div class="radio-grupo" role="group" aria-labelledby="orden-label">
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="orden" value="si"> Sí, tengo orden médica
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="orden" value="no"> No, necesito orientación
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="orden" value="cotizacion"> Solo cotización, sin orden
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="campo">
+                                <label for="region" class="label">Región o área de estudio</label>
+                                <input type="text" id="region" name="region" class="input"
+                                    placeholder="Ej. columna lumbar L3-S1, rodilla derecha…" maxlength="200"
+                                    title="Descripción de la región anatómica a estudiar (opcional si ya eligió el estudio)"
+                                    aria-describedby="region-ayuda">
+                                <span class="ayuda" id="region-ayuda">Opcional. Ayuda a preparar el protocolo
+                                    correcto.</span>
+                            </div>
+
+                        </fieldset>
+
+                        <fieldset class="fieldset">
+                            <legend class="legend">Fecha y horario preferidos</legend>
+
+                            <div class="campo-grupo campo-grupo--2col">
+                                <div class="campo">
+                                    <label for="fecha" class="label">Fecha preferida <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <input type="date" id="fecha" name="fecha" class="input" required min="2026-10-01"
+                                        max="2027-12-31" title="Seleccione la fecha en que desea realizar su estudio"
+                                        aria-describedby="fecha-ayuda">
+                                    <span class="ayuda" id="fecha-ayuda">Sábados solo hasta el mediodía. Domingos no hay
+                                        servicio.</span>
+                                </div>
+                                <div class="campo">
+                                    <label for="horario" class="label">Franja horaria preferida <span class="requerido"
+                                            aria-hidden="true">*</span></label>
+                                    <select id="horario" name="horario" class="select" required
+                                        title="Seleccione la franja horaria de su preferencia">
+                                        <option value="">Seleccione…</option>
+                                        <option value="manana-temprana">06:30 – 09:00 (mañana temprana)</option>
+                                        <option value="manana">09:00 – 12:00 (mañana)</option>
+                                        <option value="mediodia">12:00 – 14:00 (mediodía)</option>
+                                        <option value="tarde">14:00 – 17:00 (tarde)</option>
+                                        <option value="tarde-noche">17:00 – 19:00 (tarde-noche, lun-vie)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="campo">
+                                <label for="fecha-alt" class="label">Fecha alternativa (opcional)</label>
+                                <input type="date" id="fecha-alt" name="fecha-alt" class="input" min="2026-10-01"
+                                    max="2027-12-31"
+                                    title="Fecha alternativa en caso de que la preferida no tenga disponibilidad">
+                            </div>
+
+                        </fieldset>
+
+                        <fieldset class="fieldset">
+                            <legend class="legend">Información clínica adicional</legend>
+
+                            <div class="campo">
+                                <label for="implantes" class="label">¿Tiene implantes, prótesis o dispositivos
+                                    metálicos?</label>
+                                <div class="radio-grupo" role="group" aria-labelledby="implantes-label">
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="implantes" value="no" checked> No
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="implantes" value="marcapasos"> Marcapasos o
+                                        desfibrilador
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="implantes" value="protesis"> Prótesis articular
+                                        (cadera, rodilla)
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="implantes" value="clip"> Clip cerebral o vascular
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="implantes" value="otro"> Otro dispositivo
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="campo">
+                                <label for="alergia" class="label">¿Tiene alergia conocida a medios de contraste (yodo o
+                                    gadolinio)?</label>
+                                <div class="radio-grupo radio-grupo--fila" role="group" aria-labelledby="alergia-label">
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="alergia" value="no" checked> No
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="alergia" value="si"> Sí
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="alergia" value="desconoce"> No lo sé
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="campo">
+                                <label for="renal" class="label">¿Tiene antecedente de enfermedad renal crónica?</label>
+                                <div class="radio-grupo radio-grupo--fila" role="group" aria-labelledby="renal-label">
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="renal" value="no" checked> No
+                                    </label>
+                                    <label class="radio-opcion">
+                                        <input type="radio" name="renal" value="si"> Sí
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="campo">
+                                <label for="notas" class="label">Notas o indicaciones del médico (opcional)</label>
+                                <textarea id="notas" name="notas" class="textarea" rows="4" maxlength="600"
+                                    placeholder="Ej. paciente con claustrofobia leve, solicitar sedación. Con contraste por sospecha de lesión focal hepática..."
+                                    title="Información clínica adicional que facilite la preparación del protocolo"
+                                    aria-describedby="notas-ayuda"></textarea>
+                                <span class="ayuda" id="notas-ayuda">Máximo 600 caracteres. No incluya información de
+                                    tarjetas ni
+                                    contraseñas.</span>
+                            </div>
+
+                        </fieldset>
+
+                        <fieldset class="fieldset fieldset--consentimiento">
+                            <legend class="legend">Consentimiento</legend>
+
+                            <div class="campo campo--check">
+                                <label class="check-opcion">
+                                    <input type="checkbox" name="consentimiento" id="consentimiento" required
+                                        title="Debe aceptar el tratamiento de sus datos para enviar el formulario">
+                                    <span>Autorizo a RadioCare a contactarme para confirmar mi cita y a tratar mis datos
+                                        personales con
+                                        fines exclusivamente clínicos, según la <a href="#"
+                                            class="enlace-legal">Política de privacidad</a>.
+                                        <span class="requerido" aria-hidden="true">*</span></span>
+                                </label>
+                            </div>
+
+                            <div class="campo campo--check">
+                                <label class="check-opcion">
+                                    <input type="checkbox" name="recordatorio" id="recordatorio">
+                                    <span>Deseo recibir un recordatorio por WhatsApp 24 horas antes de mi cita.</span>
+                                </label>
+                            </div>
+
+                            <p class="nota-requerido"><span class="requerido" aria-hidden="true">*</span> Campos
+                                obligatorios</p>
+
+                            <button type="button" class="btn btn--primario btn--submit">
+                                Enviar solicitud de cita
+                            </button>
+                        </fieldset>
+
+                    </form>
+                </div>
+
+                <aside class="ct-lateral" aria-label="Información de contacto y horarios">
+                    <div class="lateral-bloque">
+                        <h3>Confirmación en 2 horas hábiles</h3>
+                        <p>Una vez enviado el formulario, recibirá una llamada o mensaje de WhatsApp para confirmar
+                            disponibilidad y
+                            darle instrucciones de preparación específicas para su estudio.</p>
+                    </div>
+
+                    <div class="lateral-bloque lateral-bloque--horarios">
+                        <h3>Horarios de atención</h3>
+                        <ul class="horarios-lista">
+                            <li><span>Lun – Vie</span><strong>6:30 – 19:00</strong></li>
+                            <li><span>Sábado</span><strong>7:00 – 13:00</strong></li>
+                            <li class="cerrado"><span>Domingo</span><strong>Cerrado</strong></li>
+                        </ul>
+                    </div>
+
+                    <div class="lateral-bloque">
+                        <h3>Contáctenos directamente</h3>
+                        <ul class="contacto-lista">
+                            <li>
+                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+                                    aria-hidden="true">
+                                    <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
+                                    <path d="M2 5l8 6 8-6" />
+                                </svg>
+                                <a href="mailto:citas@radiocare.example">citas@radiocare.example</a>
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+                                    aria-hidden="true">
+                                    <path
+                                        d="M2 3h4l2 5-2.5 1.5A11 11 0 0011.5 14.5L13 12l5 2v4a2 2 0 01-2 2C6.5 20 0 13.5 0 5a2 2 0 012-2z" />
+                                </svg>
+                                <a href="tel:+50322000000">+503 2200-0000</a>
+                            </li>
+                            <li>
+                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+                                    aria-hidden="true">
+                                    <circle cx="10" cy="10" r="8" />
+                                    <path d="M10 6v4l3 3" />
+                                </svg>
+                                <span>Respuesta en horario hábil</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="lateral-bloque lateral-bloque--docs">
+                        <h3>Qué traer el día del estudio</h3>
+                        <ul class="docs-lista">
+                            <li>DUI o documento de identidad</li>
+                            <li>Orden médica original firmada</li>
+                            <li>Estudios previos relacionados (si los tiene)</li>
+                            <li>Resultados de creatinina si aplica contraste</li>
+                            <li>Lista de medicamentos actuales</li>
+                        </ul>
+                    </div>
+                </aside>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <div class="contenedor">
+            <div class="footer__flex">
+                <div>
+                    <a class="logo" href="index.html">Radio<span>Care</span></a>
+                    <p style="margin-top:12px;max-width:34ch">Clínica de diagnóstico radiológico con entrega digital de
+                        resultados
+                        vía PACS/DICOM.</p>
+                </div>
+                <nav aria-label="Enlaces del sitio">
+                    <h2>Sitio</h2>
+                    <ul>
+                        <li><a href="index.html">Inicio</a></li>
+                        <li><a href="servicios.html">Servicios</a></li>
+                        <li><a href="nosotros.html">Nosotros</a></li>
+                        <li><a href="citas.html">Agendar cita</a></li>
+                    </ul>
+                </nav>
+                <div>
+                    <h2>Horarios</h2>
+                    <ul>
+                        <li>Lun – Vie: 6:30 – 19:00</li>
+                        <li>Sábado: 7:00 – 13:00</li>
+                        <li>Domingo: cerrado</li>
+                    </ul>
+                </div>
+                <div>
+                    <h2>Contacto</h2>
+                    <address>
+                        <p>Colonia Escalón, San Salvador</p>
+                        <p><a href="tel:+50322000000">+503 2200-0000</a></p>
+                        <p><a href="mailto:citas@radiocare.example">citas@radiocare.example</a></p>
+                    </address>
+                </div>
+            </div>
+            <p class="footer__legal">©2026 RadioCare</p>
+        </div>
+    </footer>
+</body>
+
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RadioCare | Diagnóstico radiológico e imágenes médicas</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/home.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="contenedor header__barra">
+            <a class="logo" href="index.html" aria-label="RadioCare, ir al inicio">
+                <svg viewBox="0 0 32 32" fill="none" stroke="#b1a6f6" stroke-width="2" aria-hidden="true">
+                    <circle cx="16" cy="16" r="13" />
+                    <path d="M5 17h6l3-7 4 12 3-5h6" stroke="#00b1ff" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Radio<span>Care</span>
+            </a>
+            <nav class="nav" aria-label="Navegación principal">
+                <input type="checkbox" id="menu" class="nav__toggle" aria-label="Abrir menú">
+                <label for="menu" class="nav__boton" aria-hidden="true"><i></i><i></i><i></i></label>
+                <ul class="nav__lista">
+                    <li><a href="index.html" aria-current="page">Inicio</a></li>
+                    <li><a href="servicios.html">Servicios</a></li>
+                    <li><a href="nosotros.html">Nosotros</a></li>
+                    <li><a class="btn btn--primario" href="citas.html">Agendar cita</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main id="contenido">
+        <section class="hero seccion">
+            <div class="contenedor hero__flex">
+                <div class="hero__texto">
+                    <p class="etiqueta">Imagen diagnóstica certificada</p>
+                    <h1>Diagnósticos por imagen con <span class="resaltado">precisión</span> que se ve.</h1>
+                    <p class="hero__lead">Resonancia Magnética 3T, Tomografía Multicorte y Ultrasonido Doppler
+                        informados por
+                        médicos radiólogos. Sus imágenes llegan a su médico en formato DICOM, sin placas ni CDs.</p>
+                    <div class="hero__acciones">
+                        <a class="btn btn--primario" href="citas.html">Agendar estudio</a>
+                        <a class="btn btn--fantasma" href="servicios.html">Ver todos los estudios</a>
+                    </div>
+                </div>
+                <aside class="hero__panel" aria-label="Ejemplo de informe digital">
+                    <svg viewBox="0 0 320 320" fill="none" stroke="#b1a6f6" stroke-width="1.5" role="img"
+                        aria-label="Ilustración lineal de un equipo de resonancia magnética">
+                        <circle cx="160" cy="150" r="110" />
+                        <circle cx="160" cy="150" r="78" />
+                        <circle cx="160" cy="150" r="48" stroke="#00b1ff" />
+                        <path d="M40 285h240M80 285v-20h160v20" />
+                        <path d="M122 150c0-22 17-38 38-38s38 16 38 38" stroke="#00ffaa" />
+                    </svg>
+                </aside>
+            </div>
+        </section>
+
+        <section class="metricas" aria-labelledby="t-metricas">
+            <div class="contenedor">
+                <ul class="metricas__flex">
+                    <li class="metrica"><strong>3 T</strong><span>Campo magnético de nuestra resonancia, con mayor
+                            resolución de
+                            tejido</span></li>
+                    <li class="metrica"><strong>24 h</strong><span>Entrega de informe en estudios ambulatorios de
+                            rutina</span>
+                    </li>
+                    <li class="metrica"><strong>128</strong><span>Cortes por rotación en la tomografía computarizada
+                            multicorte</span></li>
+                    <li class="metrica"><strong>99 %</strong><span>Estudios entregados por vía digital en formato
+                            DICOM</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="seccion seccion--clara" aria-labelledby="t-tec">
+            <div class="contenedor">
+                <h2 id="t-tec" class="titulo-seccion">Cinco tecnologías, un solo informe claro</h2>
+                <p class="subtitulo-seccion">Cada estudio es interpretado por un médico radiólogo y entregado con
+                    imágenes de
+                    referencia para su médico tratante.</p>
+                <div class="tec__flex">
+
+                    <article class="tec">
+                        <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&q=80"
+                            alt="Equipo de resonancia magnética en sala clínica" class="tec__img">
+                        <h3>Resonancia Magnética 3T</h3>
+                        <p>Cerebro, columna, articulaciones y abdomen con detalle de tejidos blandos. Duración típica de
+                            30 a 45
+                            minutos.</p>
+                    </article>
+
+                    <article class="tec">
+                        <img src="https://images.unsplash.com/photo-1559757175-5700dde675bc?w=600&q=80"
+                            alt="Tomógrafo computarizado multicorte en sala de radiología" class="tec__img">
+                        <h3>Tomografía Multicorte</h3>
+                        <p>Adquisición volumétrica en segundos, con protocolos de baja dosis y angiotomografía.</p>
+                    </article>
+
+                    <article class="tec">
+                        <img src="https://images.unsplash.com/photo-1666214280557-f1b5022eb634?w=600&q=80"
+                            alt="Tecnóloga realizando un ultrasonido a paciente" class="tec__img">
+                        <h3>Ultrasonido Doppler</h3>
+                        <p>Evaluación del flujo sanguíneo arterial y venoso, sin radiación ionizante.</p>
+                    </article>
+
+                    <article class="tec">
+                        <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=600&q=80"
+                            alt="Radiografía de tórax iluminada en negatoscopio" class="tec__img">
+                        <h3>Rayos X Digitales</h3>
+                        <p>Radiografía de tórax, huesos y senos paranasales con imagen inmediata y mínima exposición.
+                        </p>
+                    </article>
+
+                    <article class="tec">
+                        <img src="https://images.unsplash.com/photo-1616012480717-fd9867059ca0?q=80&w=1025&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?w=600&q=80"
+                            alt="Médico analizando imagen de densitometría ósea en pantalla" class="tec__img">
+                        <h3>Densitometría Ósea</h3>
+                        <p>Medición de la densidad mineral en columna lumbar y cadera para detectar osteoporosis.</p>
+                    </article>
+
+                </div>
+            </div>
+        </section>
+
+        <section class="seccion" aria-labelledby="t-acc">
+            <div class="contenedor">
+                <h2 id="t-acc" class="titulo-seccion">¿Qué necesita hoy?</h2>
+                <div class="accesos__flex">
+                    <a class="acceso" href="citas.html">
+                        <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80"
+                            alt="Médico revisando resultados de imagen diagnóstica con un paciente" class="acceso__img">
+                        <h3>Agendar una cita</h3>
+                        <p>Elija estudio, fecha y horario. Atendemos de lunes a viernes de 6:30 a. m. a 7:00 p. m. y
+                            sábados de 7:00
+                            a. m. a 1:00 p. m.</p>
+                    </a>
+                    <a class="acceso" href="servicios.html">
+                        <img src="https://images.unsplash.com/photo-1530026186672-2cd00ffc50fe?w=600&q=80"
+                            alt="Vaso de agua sobre mesa blanca, símbolo de preparación e hidratación previa"
+                            class="acceso__img">
+                        <h3>Prepararme para un estudio</h3>
+                        <p>Ayuno, hidratación, retiro de metales y contraindicaciones según cada tipo de imagen.</p>
+                    </a>
+                    <a class="acceso" href="nosotros.html">
+                        <img src="https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=600&q=80"
+                            alt="Equipo de médicos radiólogos en sala de trabajo" class="acceso__img">
+                        <h3>Conocer al equipo</h3>
+                        <p>Radiólogos certificados, tecnólogos y el equipamiento con el que trabajamos.</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="contenedor">
+            <div class="footer__flex">
+                <div>
+                    <a class="logo" href="index.html">Radio<span>Care</span></a>
+                    <p style="margin-top:12px;max-width:34ch">Clínica de diagnóstico radiológico con entrega digital de
+                        resultados
+                        vía PACS/DICOM.</p>
+                </div>
+                <nav aria-label="Enlaces del sitio">
+                    <h2>Sitio</h2>
+                    <ul>
+                        <li><a href="index.html">Inicio</a></li>
+                        <li><a href="servicios.html">Servicios</a></li>
+                        <li><a href="nosotros.html">Nosotros</a></li>
+                        <li><a href="citas.html">Agendar cita</a></li>
+                    </ul>
+                </nav>
+                <div>
+                    <h2>Horarios</h2>
+                    <ul>
+                        <li>Lun – Vie: 6:30 – 19:00</li>
+                        <li>Sábado: 7:00 – 13:00</li>
+                        <li>Domingo: cerrado</li>
+                    </ul>
+                </div>
+                <div>
+                    <h2>Contacto</h2>
+                    <address>
+                        <p>Colonia Escalón, San Salvador</p>
+                        <p><a href="tel:+50322000000">+503 2200-0000</a></p>
+                        <p><a href="mailto:citas@radiocare.example">citas@radiocare.example</a></p>
+                    </address>
+                </div>
+            </div>
+            <p class="footer__legal">©2026 RadioCare</p>
+        </div>
+    </footer>
+</body>
+
+</html>

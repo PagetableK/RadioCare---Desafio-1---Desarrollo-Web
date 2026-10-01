@@ -1,0 +1,224 @@
+/* hero */
+.hero {
+    padding-top: 80px;
+    padding-bottom: 80px;
+}
+
+.hero__flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    align-items: center;
+}
+
+/* texto del hero ocupa mas espacio que el panel */
+.hero__flex>.hero__texto {
+    flex: 1 1 420px;
+}
+
+.hero__flex>.hero__panel {
+    flex: 0 0 360px;
+}
+
+.etiqueta {
+    display: inline-block;
+    padding: 6px 16px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    color: var(--color-mint-vital);
+    border: 1px solid var(--color-mint-vital);
+    border-radius: 9999px;
+}
+
+.hero h1 {
+    font-size: clamp(40px, 8vw, 66px);
+    letter-spacing: -0.04em;
+    max-width: 14ch;
+}
+
+.resaltado {
+    display: inline-block;
+    padding: 0 10px;
+    border: 1px dashed var(--color-clinical-cyan);
+    border-radius: 7px;
+    color: var(--color-clinical-cyan);
+}
+
+.hero__lead {
+    margin-top: 24px;
+    max-width: 52ch;
+    color: var(--color-ash);
+}
+
+.hero__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.hero__panel {
+    background: var(--color-iris-shadow);
+    border: 1px solid var(--color-iris-border);
+    margin-inline: auto;
+    border-radius: 32px;
+    padding: 24px;
+}
+
+.punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-mint-vital);
+    flex: none;
+}
+
+.metricas {
+    padding-bottom: 64px;
+}
+
+.metricas__flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.metrica {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 200px;
+    background: var(--color-iris-shadow);
+    border: 1px solid var(--color-iris-border);
+    border-radius: 24px;
+    padding: 24px;
+}
+
+.metrica strong {
+    font-size: clamp(40px, 5vw, 66px);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--color-clinical-cyan);
+}
+
+.metrica span {
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    color: var(--color-pearl);
+}
+
+/* titulos de seccion */
+.titulo-seccion {
+    font-size: clamp(32px, 5vw, 46px);
+    letter-spacing: -0.04em;
+    max-width: 20ch;
+}
+
+.subtitulo-seccion {
+    margin-top: 16px;
+    max-width: 60ch;
+    color: var(--color-iris-shadow);
+}
+
+/* tecnologias */
+.tec__flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 40px;
+}
+
+.tec {
+    flex: 1 1 220px;
+    background: var(--color-cloud-white);
+    border: 1px solid var(--color-ash);
+    border-radius: 24px;
+    padding: 24px;
+}
+
+.tec h3 {
+    font-size: 24px;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 12px;
+}
+
+.tec p {
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    color: var(--color-iris-shadow);
+}
+
+/* accesos rapidos */
+.accesos__flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 40px;
+}
+
+.acceso {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 260px;
+    background: var(--color-iris-shadow);
+    border: 1px solid var(--color-iris-border);
+    border-radius: 24px;
+    padding: 32px 24px;
+    transition: border-color .2s, background-color .2s;
+}
+
+.acceso:hover,
+.acceso:focus-visible {
+    border-color: var(--color-clinical-cyan);
+    background: var(--color-iris-glow);
+}
+
+.acceso h3 {
+    font-size: 24px;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+}
+
+.acceso p {
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    color: var(--color-ash);
+}
+
+.acceso__img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 16px;
+    display: block;
+}
+
+.tec__img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin-bottom: 4px;
+}
+
+/* responsive */
+@media (max-width: 1024px) {
+    .hero__flex>.hero__panel {
+        flex: 0 0 100%;
+        max-width: 420px;
+    }
+}
+
+@media (max-width: 480px) {
+    .metrica {
+        flex: 0 0 100%;
+    }
+
+    .hero__acciones .btn {
+        width: 100%;
+    }
+}

@@ -41,8 +41,8 @@
                 <h1>Agende su estudio o solicite una cotización</h1>
                 <p>Complete el formulario y uno de nuestros coordinadores de citas confirmará su horario dentro de las
                     próximas
-                    2 horas hábiles. Atendemos de lunes a viernes de 6:30 a.&nbsp;m. a 7:00 p.&nbsp;m. y sábados de 7:00
-                    a.&nbsp;m. a 1:00 p.&nbsp;m.</p>
+                    2 horas hábiles. Atendemos de lunes a viernes de 6:30 a.&nbsp;m. a 4:30 p.&nbsp;m. y sábados de 7:00
+                    a.&nbsp;m. a 12:00 p.&nbsp;m.</p>
             </div>
         </section>
 
@@ -171,45 +171,26 @@
                                         title="Seleccione el tipo de estudio que necesita"
                                         aria-describedby="estudio-ayuda">
                                         <option value="">Seleccione…</option>
-                                        <optgroup label="Resonancia Magnética">
-                                            <option value="rm-craneo">RM de cráneo y cerebro</option>
-                                            <option value="rm-columna-cervical">RM de columna cervical</option>
-                                            <option value="rm-columna-lumbar">RM de columna lumbar</option>
-                                            <option value="rm-rodilla">RM de rodilla</option>
-                                            <option value="rm-hombro">RM de hombro</option>
-                                            <option value="rm-abdomen">RM de abdomen y pelvis</option>
-                                            <option value="rm-mama">RM de mama con contraste</option>
-                                            <option value="rm-cardiaca">RM cardíaca funcional</option>
-                                        </optgroup>
-                                        <optgroup label="Tomografía Computarizada">
-                                            <option value="tc-torax">TC de tórax TCAR</option>
-                                            <option value="tc-abdomen">TC de abdomen y pelvis</option>
-                                            <option value="tc-craneo">TC de cráneo simple</option>
-                                            <option value="tc-angio-coronaria">Angiotomografía coronaria</option>
-                                            <option value="tc-angio-pulmonar">Angiotomografía pulmonar</option>
-                                        </optgroup>
                                         <optgroup label="Ultrasonido">
                                             <option value="us-abdominal">Ultrasonido abdominal</option>
-                                            <option value="us-doppler-arterial">Doppler arterial de miembros</option>
-                                            <option value="us-doppler-venoso">Doppler venoso de miembros</option>
-                                            <option value="us-carotideo">Doppler carotídeo</option>
+                                            <option value="us-abdominal+pelvies">Ultrasonido abdominal+pelvis</option>
                                             <option value="us-tiroides">Ultrasonido de tiroides</option>
+                                            <option value="us-vejiga">Ultrasonido de vejiga</option>
+                                            <option value="us-pelvis">Ultrasonido de pelvis</option>
                                             <option value="us-mama">Ultrasonido de mama</option>
-                                            <option value="us-obstetrico">Ultrasonido obstétrico</option>
+                                            <option value="us-embarzo">Ultrasonido para embarazadas</option>
                                         </optgroup>
-                                        <optgroup label="Rayos X">
-                                            <option value="rx-torax">Rayos X de tórax</option>
-                                            <option value="rx-columna">Rayos X de columna</option>
-                                            <option value="rx-huesos">Rayos X de huesos largos</option>
-                                            <option value="rx-senos">Rayos X de senos paranasales</option>
-                                        </optgroup>
-                                        <optgroup label="Densitometría">
-                                            <option value="dxa">Densitometría ósea DEXA</option>
+                                        <optgroup label="Doppler">
+                                            <option value="doppler-arterial-superior">Doppler arterial de miembro superior</option>
+                                            <option value="doppler-arterial-inferior">Doppler arterial de miembro inferior</option>
+                                            <option value="doppler-venoso-superior">Doppler venoso de miembro superior</option>
+                                            <option value="doppler-venoso-inferior">Doppler venoso de miembro inferior</option>
+                                            <option value="doppler-renal">Doppler renal</option>
+                                            <option value="doppler-aorta">Doppler aorta</option>
                                         </optgroup>
                                     </select>
                                     <span class="ayuda" id="estudio-ayuda">Si tiene orden médica, verifique el nombre
-                                        exacto del
-                                        estudio.</span>
+                                        exacto de estudio.</span>
                                 </div>
                                 <div class="campo">
                                     <label for="modalidad" class="label">Modalidad de solicitud <span class="requerido"
@@ -271,9 +252,8 @@
                                         <option value="">Seleccione…</option>
                                         <option value="manana-temprana">06:30 – 09:00 (mañana temprana)</option>
                                         <option value="manana">09:00 – 12:00 (mañana)</option>
-                                        <option value="mediodia">12:00 – 14:00 (mediodía)</option>
-                                        <option value="tarde">14:00 – 17:00 (tarde)</option>
-                                        <option value="tarde-noche">17:00 – 19:00 (tarde-noche, lun-vie)</option>
+                                        <option value="mediodia">12:00 – 14:00 (mediodía, lun-vie)</option>
+                                        <option value="tarde">14:00 – 16:30 (tarde, lun-vie)</option>
                                     </select>
                                 </div>
                             </div>
@@ -399,8 +379,8 @@
                     <div class="lateral-bloque lateral-bloque--horarios">
                         <h3>Horarios de atención</h3>
                         <ul class="horarios-lista">
-                            <li><span>Lun – Vie</span><strong>6:30 – 19:00</strong></li>
-                            <li><span>Sábado</span><strong>7:00 – 13:00</strong></li>
+                            <li><span>Lun – Vie</span><strong>6:30 – 16:30</strong></li>
+                            <li><span>Sábado</span><strong>7:00 – 12:00</strong></li>
                             <li class="cerrado"><span>Domingo</span><strong>Cerrado</strong></li>
                         </ul>
                     </div>
@@ -414,7 +394,7 @@
                                     <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
                                     <path d="M2 5l8 6 8-6" />
                                 </svg>
-                                <a href="mailto:citas@radiocare.example">citas@radiocare.example</a>
+                                <a href="mailto:radiocaresv@gmail.com">radiocaresv@gmail.com</a>
                             </li>
                             <li>
                                 <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -422,7 +402,7 @@
                                     <path
                                         d="M2 3h4l2 5-2.5 1.5A11 11 0 0011.5 14.5L13 12l5 2v4a2 2 0 01-2 2C6.5 20 0 13.5 0 5a2 2 0 012-2z" />
                                 </svg>
-                                <a href="tel:+50322000000">+503 2200-0000</a>
+                                <a href="tel:+50322356906">+503 2235-6906</a>
                             </li>
                             <li>
                                 <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -473,8 +453,8 @@
                 <div>
                     <h2>Horarios</h2>
                     <ul>
-                        <li>Lun – Vie: 6:30 – 19:00</li>
-                        <li>Sábado: 7:00 – 13:00</li>
+                        <li>Lun – Vie: 6:30 – 16:30</li>
+                        <li>Sábado: 7:00 – 12:00</li>
                         <li>Domingo: cerrado</li>
                     </ul>
                 </div>
@@ -482,8 +462,8 @@
                     <h2>Contacto</h2>
                     <address>
                         <p>Colonia Escalón, San Salvador</p>
-                        <p><a href="tel:+50322000000">+503 2200-0000</a></p>
-                        <p><a href="mailto:citas@radiocare.example">citas@radiocare.example</a></p>
+                        <p><a href="tel:+50322356906">+503 2235-6906</a></p>
+                        <p><a href="mailto:radiocaresv@gmail.com">radiocaresv@gmail.com</a></p>
                     </address>
                 </div>
             </div>

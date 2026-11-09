@@ -305,3 +305,132 @@
     flex: 1 1 100%;
   }
 }
+
+/* =========================================================
+   RadioCare - Barra de Filtros y Estados Dinámicos de Servicios
+   ========================================================= */
+.servicios-filtros-nav {
+  margin-bottom: 32px;
+}
+
+.servicios-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filtro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: var(--color-iris-shadow);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 9999px;
+  color: var(--color-ash);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.filtro-btn:hover {
+  border-color: var(--color-clinical-cyan);
+  color: var(--color-cloud-white);
+  transform: translateY(-1px);
+}
+
+.filtro-btn.activo {
+  background: var(--color-iris-pulse);
+  border-color: var(--color-clinical-cyan);
+  color: var(--color-cloud-white);
+  box-shadow: 0 4px 16px rgba(64, 60, 213, 0.4);
+}
+
+.filtro-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-mint-vital);
+}
+
+/* Indicador de carga de servicios */
+.cargando-servicios {
+  flex: 1 1 100%;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 24px;
+  background: var(--color-iris-shadow);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 28px;
+  color: var(--color-ash);
+  text-align: center;
+}
+
+.cargando-servicios .rc-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid rgba(0, 177, 255, 0.2);
+  border-top-color: var(--color-clinical-cyan);
+  border-radius: 50%;
+  animation: rcSpin 0.8s linear infinite;
+}
+
+/* Estado vacío (Empty State) */
+.servicios-vacio {
+  flex: 1 1 100%;
+  text-align: center;
+  padding: 60px 24px;
+  background: var(--color-iris-shadow);
+  border: 1px dashed var(--color-iris-border);
+  border-radius: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.servicios-vacio__icono {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-deep-iris);
+  border: 1px solid var(--color-iris-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-lilac-mist);
+}
+
+.servicios-vacio__icono svg {
+  width: 32px;
+  height: 32px;
+}
+
+.servicios-vacio h3 {
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  color: var(--color-cloud-white);
+}
+
+.servicios-vacio p {
+  font-size: 15px;
+  color: var(--color-ash);
+  max-width: 44ch;
+  line-height: 1.5;
+}
+
+/* Tarjeta dinámica de estudio */
+.estudio {
+  animation: rcFadeIn 0.3s ease-out;
+}
+
+.estudio__precio {
+  color: var(--color-mint-vital) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}

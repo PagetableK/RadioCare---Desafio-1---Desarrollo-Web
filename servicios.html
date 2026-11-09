@@ -27,7 +27,10 @@
           <li><a href="index.html">Inicio</a></li>
           <li><a href="servicios.html" aria-current="page">Servicios</a></li>
           <li><a href="nosotros.html">Nosotros</a></li>
-          <li><a class="btn btn--primario" href="citas.html">Agendar cita</a></li>
+          <li><a href="citas.html">Agendar cita</a></li>
+          <li id="nav-auth-container">
+            <a class="btn btn--primario" href="acceso.html">Acceso</a>
+          </li>
         </ul>
       </nav>
     </div>
@@ -47,161 +50,39 @@
     <!-- CATÁLOGO DE ESTUDIOS -->
     <section class="seccion" aria-labelledby="t-catalogo">
       <div class="contenedor">
-        <h2 id="t-catalogo">Estudios disponibles</h2>
-        <div class="catalogo__flex">
+        <div class="seccion__encabezado">
+          <h2 id="t-catalogo">Estudios disponibles</h2>
+          <p class="subtitulo-seccion" style="color: var(--color-ash); max-width: 65ch; margin-bottom: 24px;">
+            Seleccione una categoría para explorar nuestros estudios ecográficos, vasculares y procedimientos de mínima invasión.
+          </p>
+        </div>
 
-          <!-- Ultrasonido General y Pélvico -->
-          <article class="estudio" id="us-general">
-            <header class="estudio__cabeza">
-              <span class="estudio__icono" aria-hidden="true">
-                <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M10 30 Q20 10 30 30" stroke="#b1a6f6" />
-                  <path d="M14 28 Q20 16 26 28" stroke="#00b1ff" />
-                  <circle cx="20" cy="22" r="4" stroke="#00ffaa" />
-                </svg>
-              </span>
-              <div>
-                <p class="estudio__tipo">Ultrasonografía</p>
-                <h3>Ultrasonido General y Pélvico</h3>
-              </div>
-            </header>
-            <p class="estudio__desc">Evaluación detallada de órganos internos, ideal para chequeos de salud preventivos y diagnóstico anatómico sin el uso de radiación.</p>
-            <ul class="estudio__indicaciones">
-              <li>Abdominal y Abdominal + Pelvis</li>
-              <li>Renal, Vejiga y Próstata</li>
-              <li>Pelvis femenina</li>
-              <li>Ultrasonografía obstétrica y pediátrica</li>
-            </ul>
-            <dl class="estudio__datos">
-              <div>
-                <dt>Duración</dt>
-                <dd>20 – 30 min</dd>
-              </div>
-              <div>
-                <dt>Entrega de informe</dt>
-                <dd>Mismo día</dd>
-              </div>
-              <div>
-                <dt>Radiación</dt>
-                <dd>Ninguna</dd>
-              </div>
-            </dl>
-            <a class="btn btn--fantasma estudio__cta" href="citas.html?estudio=us-abdominal">Solicitar este estudio</a>
-          </article>
+        <!-- BARRA DE FILTROS INTERACTIVA POR CATEGORÍA -->
+        <nav class="servicios-filtros-nav" aria-label="Filtro de categorías de estudios">
+          <div class="servicios-filtros" id="filtros-servicios" role="tablist">
+            <button type="button" class="filtro-btn activo" data-categoria="Todos" role="tab" aria-selected="true">
+              Todos
+            </button>
+            <button type="button" class="filtro-btn" data-categoria="Ultrasonografía" role="tab" aria-selected="false">
+              Ultrasonografía
+            </button>
+            <button type="button" class="filtro-btn" data-categoria="Doppler" role="tab" aria-selected="false">
+              Doppler
+            </button>
+            <button type="button" class="filtro-btn" data-categoria="Tejidos Blandos" role="tab" aria-selected="false">
+              Tejidos Blandos
+            </button>
+            <button type="button" class="filtro-btn" data-categoria="Procedimientos" role="tab" aria-selected="false">
+              Procedimientos
+            </button>
+          </div>
+        </nav>
 
-          <!-- Ultrasonido Doppler -->
-          <article class="estudio" id="us-doppler">
-            <header class="estudio__cabeza">
-              <span class="estudio__icono" aria-hidden="true">
-                <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M10 20 C 15 5, 25 35, 30 20" stroke="#00b1ff" />
-                  <circle cx="20" cy="20" r="12" stroke="#b1a6f6" stroke-dasharray="4 4"/>
-                </svg>
-              </span>
-              <div>
-                <p class="estudio__tipo">Estudios Vasculares</p>
-                <h3>Ultrasonido Doppler</h3>
-              </div>
-            </header>
-            <p class="estudio__desc">Evaluación especializada del flujo sanguíneo, permitiendo detectar obstrucciones o insuficiencias venosas y arteriales en tiempo real.</p>
-            <ul class="estudio__indicaciones">
-              <li>Carotídeo y Renal</li>
-              <li>Venoso y Arterial (miembros superiores e inferiores)</li>
-              <li>Abdominal (aorta) y Portal</li>
-            </ul>
-            <dl class="estudio__datos">
-              <div>
-                <dt>Duración</dt>
-                <dd>30 – 45 min</dd>
-              </div>
-              <div>
-                <dt>Entrega de informe</dt>
-                <dd>Mismo día</dd>
-              </div>
-              <div>
-                <dt>Radiación</dt>
-                <dd>Ninguna</dd>
-              </div>
-            </dl>
-            <a class="btn btn--fantasma estudio__cta" href="citas.html?estudio=us-doppler">Solicitar este estudio</a>
-          </article>
+        <!-- CONTENEDOR DINÁMICO DE ESTUDIOS (Renderizado vía servicios.page.js) -->
+        <div id="contenedor-servicios" class="catalogo__flex" aria-live="polite">
+          <!-- El estado de carga y las tarjetas dinámicas se inyectan aquí -->
+        </div>
 
-           <!-- Tejidos Blandos y Musculoesquelético -->
-           <article class="estudio" id="us-tejidos">
-            <header class="estudio__cabeza">
-              <span class="estudio__icono" aria-hidden="true">
-                <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M8 20 Q20 5 32 20 Q20 35 8 20" stroke="#00ffaa"/>
-                  <circle cx="20" cy="20" r="5" stroke="#b1a6f6"/>
-                </svg>
-              </span>
-              <div>
-                <p class="estudio__tipo">Ultrasonografía Especializada</p>
-                <h3>Tejidos Blandos y Articulaciones</h3>
-              </div>
-            </header>
-            <p class="estudio__desc">Imágenes de alta resolución para estructuras superficiales, músculos, tendones y diagnóstico preventivo de anomalías focales.</p>
-            <ul class="estudio__indicaciones">
-              <li>Mama (enfoque preventivo) y Cuello/Tiroides</li>
-              <li>Inguinal, Pared abdominal y Testicular</li>
-              <li>Musculoesquelético: Hombro, Rodilla, Muñeca, Tobillo</li>
-            </ul>
-            <dl class="estudio__datos">
-              <div>
-                <dt>Duración</dt>
-                <dd>20 – 30 min</dd>
-              </div>
-              <div>
-                <dt>Entrega de informe</dt>
-                <dd>Mismo día</dd>
-              </div>
-              <div>
-                <dt>Radiación</dt>
-                <dd>Ninguna</dd>
-              </div>
-            </dl>
-            <a class="btn btn--fantasma estudio__cta" href="citas.html?estudio=us-tejidos">Solicitar este estudio</a>
-          </article>
-
-          <!-- Procedimientos Guiados -->
-          <article class="estudio" id="us-procedimientos">
-            <header class="estudio__cabeza">
-              <span class="estudio__icono" aria-hidden="true">
-                <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="20" cy="20" r="16" />
-                  <path d="M20 10v20M10 20h20" stroke="#00b1ff" stroke-linecap="round" />
-                  <circle cx="20" cy="20" r="4" stroke="#b1a6f6" />
-                </svg>
-              </span>
-              <div>
-                <p class="estudio__tipo">Intervencionismo</p>
-                <h3>Procedimientos Guiados</h3>
-              </div>
-            </header>
-            <p class="estudio__desc">Asistencia ecográfica en tiempo real para procedimientos mínimamente invasivos, asegurando precisión milimétrica y mayor seguridad para el paciente.</p>
-            <ul class="estudio__indicaciones">
-              <li>CAAF (Punción Aspiración con Aguja Fina)</li>
-              <li>Guía ecográfica para procedimientos</li>
-              <li>Marcajes prequirúrgicos</li>
-            </ul>
-            <dl class="estudio__datos">
-              <div>
-                <dt>Duración</dt>
-                <dd>Variable</dd>
-              </div>
-              <div>
-                <dt>Entrega de informe</dt>
-                <dd>Mismo día</dd>
-              </div>
-              <div>
-                <dt>Radiación</dt>
-                <dd>Ninguna</dd>
-              </div>
-            </dl>
-            <a class="btn btn--fantasma estudio__cta" href="citas.html?estudio=procedimientos">Solicitar este estudio</a>
-          </article>
-
-        </div><!-- /catalogo__flex -->
       </div>
     </section>
 
@@ -318,6 +199,9 @@
       <p class="footer__legal">©2026 RadioCare</p>
     </div>
   </footer>
+  <!-- SCRIPTS ES MODULES -->
+  <script type="module" src="js/pages/navbar.js"></script>
+  <script type="module" src="js/pages/servicios.page.js"></script>
 </body>
 
 </html>

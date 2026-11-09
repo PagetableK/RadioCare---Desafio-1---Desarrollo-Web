@@ -84,18 +84,17 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    margin-bottom: 14px;
 }
 
 .campo-grupo {
     display: flex;
     flex-direction: column;
-    gap: 16px;
 }
 
 .campo-grupo--2col {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
 }
 
 .campo-grupo--2col>.campo {
@@ -462,4 +461,117 @@ input[type="date"]:user-valid {
     .btn--submit {
         font-size: 17px;
     }
+}
+
+/* =========================================================
+   RadioCare - Estado Sin Sesión y Campos Bloqueados en Citas
+   ========================================================= */
+
+/* Contenedor destacado (card) para usuarios sin sesión activa */
+.card-auth-requerido {
+    background: var(--color-iris-shadow);
+    border: 1px solid var(--color-iris-border);
+    border-radius: 24px;
+    padding: 48px 32px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 16px 40px rgba(10, 10, 45, 0.5);
+    animation: rcFadeIn 0.3s ease;
+}
+
+.card-auth-requerido__icono {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: rgba(0, 177, 255, 0.12);
+    border: 2px solid var(--color-clinical-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-clinical-cyan);
+    margin-bottom: 4px;
+}
+
+.card-auth-requerido__icono svg {
+    width: 34px;
+    height: 34px;
+}
+
+.card-auth-requerido h2 {
+    font-size: clamp(22px, 3.8vw, 28px);
+    color: var(--color-cloud-white);
+    line-height: 1.25;
+}
+
+.card-auth-requerido p {
+    color: var(--color-ash);
+    max-width: 50ch;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.card-auth-requerido__btn {
+    margin-top: 10px;
+    padding: 16px 32px;
+    font-size: 16px;
+}
+
+/* Nota / Label accesible en Datos del Paciente */
+.nota-paciente-info {
+    margin-top: 18px;
+    font-size: 13.5px;
+    color: var(--color-ash);
+    line-height: 1.55;
+    padding: 12px 16px;
+    background: rgba(0, 177, 255, 0.08);
+    border: 1px solid rgba(0, 177, 255, 0.28);
+    border-radius: 14px;
+    display: block;
+}
+
+.enlace-info {
+    color: var(--color-clinical-cyan);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.enlace-info:hover {
+    color: var(--color-mint-vital);
+}
+
+/* Estilo visual bloqueado para campos de solo lectura */
+.input--bloqueado,
+.select--bloqueado {
+    background-color: rgba(22, 22, 92, 0.6) !important;
+    border-color: rgba(72, 70, 198, 0.45) !important;
+    color: var(--color-ash) !important;
+    cursor: not-allowed !important;
+    user-select: none;
+}
+
+.input--bloqueado:focus-visible,
+.select--bloqueado:focus-visible {
+    box-shadow: none !important;
+    border-color: rgba(72, 70, 198, 0.45) !important;
+}
+
+.select--bloqueado {
+    pointer-events: none;
+    opacity: 0.82;
+}
+
+/* Soporte estricto de visibilidad reactiva y estados ocultos */
+.card-auth-requerido.oculto,
+.card-auth-requerido[hidden] {
+    display: none !important;
+}
+
+.citas-form.oculto,
+.citas-form[hidden] {
+    display: none !important;
 }

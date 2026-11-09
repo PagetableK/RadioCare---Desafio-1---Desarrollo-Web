@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso al Portal | RadioCare</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/acceso.css">
+</head>
+
+<body>
+
+  <!-- HEADER PRINCIPAL -->
+  <header class="header">
+    <div class="contenedor header__barra">
+      <a class="logo" href="index.html" aria-label="RadioCare, ir al inicio">
+        <svg viewBox="0 0 32 32" fill="none" stroke="#b1a6f6" stroke-width="2" aria-hidden="true">
+          <circle cx="16" cy="16" r="13" />
+          <path d="M5 17h6l3-7 4 12 3-5h6" stroke="#00b1ff" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Radio<span>Care</span>
+      </a>
+      <nav class="nav" aria-label="Navegación principal">
+        <input type="checkbox" id="menu" class="nav__toggle" aria-label="Abrir menú">
+        <label for="menu" class="nav__boton" aria-hidden="true"><i></i><i></i><i></i></label>
+        <ul class="nav__lista">
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="servicios.html">Servicios</a></li>
+          <li><a href="nosotros.html">Nosotros</a></li>
+          <li><a href="citas.html">Agendar cita</a></li>
+          <li id="nav-auth-container">
+            <a class="btn btn--primario" href="acceso.html" aria-current="page">Acceso</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="acceso-seccion">
+      <div class="acceso-card">
+
+        <!-- Encabezado de la tarjeta -->
+        <header class="acceso-header">
+          <div class="logo">
+            <svg viewBox="0 0 32 32" fill="none" stroke="#b1a6f6" stroke-width="2" aria-hidden="true">
+              <circle cx="16" cy="16" r="13" />
+              <path d="M5 17h6l3-7 4 12 3-5h6" stroke="#00b1ff" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Radio<span>Care</span>
+          </div>
+          <h1 id="acceso-titulo">Portal Clínico y Pacientes</h1>
+          <p id="acceso-subtitulo">Ingrese a su expediente digital o cree una cuenta para gestionar sus estudios.</p>
+        </header>
+
+        <!-- Barra de pestañas para alternar entre Login y Registro -->
+        <div class="acceso-tabs" role="tablist" aria-label="Seleccionar modo de acceso">
+          <button 
+            type="button" 
+            id="tab-login" 
+            class="acceso-tab activo" 
+            role="tab" 
+            aria-selected="true" 
+            aria-controls="form-login">
+            Iniciar Sesión
+          </button>
+          <button 
+            type="button" 
+            id="tab-registro" 
+            class="acceso-tab" 
+            role="tab" 
+            aria-selected="false" 
+            aria-controls="form-registro">
+            Registrarse
+          </button>
+        </div>
+
+        <!-- Contenedor dinámico de alertas accesibles -->
+        <div id="alerta-acceso" aria-live="polite"></div>
+
+        <!-- ==========================================
+             FORMULARIO 1: INICIO DE SESIÓN
+             ========================================== -->
+        <form id="form-login" class="acceso-form" role="tabpanel" aria-labelledby="tab-login" novalidate>
+          <div class="campo-formulario">
+            <label for="login-email">Correo Electrónico <span class="requerido" aria-hidden="true">*</span></label>
+            <input 
+              type="email" 
+              id="login-email" 
+              name="email" 
+              placeholder="ejemplo@correo.com" 
+              required 
+              autocomplete="email"
+              aria-describedby="login-email-ayuda">
+            <span id="login-email-ayuda" class="ayuda">El correo con el que registró su cuenta o cita.</span>
+          </div>
+
+          <div class="campo-formulario">
+            <label for="login-password">Contraseña <span class="requerido" aria-hidden="true">*</span></label>
+            <input 
+              type="password" 
+              id="login-password" 
+              name="password" 
+              placeholder="••••••••" 
+              required 
+              autocomplete="current-password">
+          </div>
+
+          <button type="submit" id="btn-login-submit" class="btn btn--primario btn--ancho-completo">
+            Iniciar Sesión
+          </button>
+
+          <p class="acceso-cambio-modo">
+            ¿No tiene una cuenta aún? 
+            <button type="button" class="btn-link" id="link-ir-registro">Crear cuenta de paciente</button>
+          </p>
+        </form>
+
+        <!-- ==========================================
+             FORMULARIO 2: REGISTRO DE PACIENTE
+             ========================================== -->
+        <form id="form-registro" class="acceso-form" role="tabpanel" aria-labelledby="tab-registro" hidden novalidate>
+          <div class="campo-fila">
+            <div class="campo-formulario">
+              <label for="reg-nombre">Nombre <span class="requerido" aria-hidden="true">*</span></label>
+              <input 
+                type="text" 
+                id="reg-nombre" 
+                name="nombre" 
+                placeholder="Ej. María" 
+                required 
+                autocomplete="given-name">
+            </div>
+            <div class="campo-formulario">
+              <label for="reg-apellido">Apellido <span class="requerido" aria-hidden="true">*</span></label>
+              <input 
+                type="text" 
+                id="reg-apellido" 
+                name="apellido" 
+                placeholder="Ej. Rodríguez" 
+                required 
+                autocomplete="family-name">
+            </div>
+          </div>
+
+          <!-- Campos clínicos obligatorios ampliados -->
+          <div class="campo-formulario">
+            <label for="reg-dui">DUI o documento de identidad <span class="requerido" aria-hidden="true">*</span></label>
+            <input 
+              type="text" 
+              id="reg-dui" 
+              name="dui" 
+              placeholder="00000000-0" 
+              maxlength="10" 
+              required 
+              autocomplete="off"
+              aria-describedby="reg-dui-ayuda">
+            <span id="reg-dui-ayuda" class="ayuda">Formato: 00000000-0 (9 dígitos con guion)</span>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo-formulario">
+              <label for="reg-fecha-nacimiento">Fecha de nacimiento <span class="requerido" aria-hidden="true">*</span></label>
+              <input 
+                type="date" 
+                id="reg-fecha-nacimiento" 
+                name="fechaNacimiento" 
+                required 
+                autocomplete="bday">
+            </div>
+            <div class="campo-formulario">
+              <label for="reg-sexo-biologico">Sexo biológico <span class="requerido" aria-hidden="true">*</span></label>
+              <select 
+                id="reg-sexo-biologico" 
+                name="sexoBiologico" 
+                required>
+                <option value="" disabled selected>Seleccione...</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Masculino">Masculino</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo-formulario">
+            <label for="reg-email">Correo Electrónico <span class="requerido" aria-hidden="true">*</span></label>
+            <input 
+              type="email" 
+              id="reg-email" 
+              name="email" 
+              placeholder="maria.rodriguez@correo.com" 
+              required 
+              autocomplete="email"
+              aria-describedby="reg-email-ayuda">
+            <span id="reg-email-ayuda" class="ayuda">Le enviaremos las confirmaciones y resultados a este correo.</span>
+          </div>
+
+          <div class="campo-fila">
+            <div class="campo-formulario">
+              <label for="reg-password">Contraseña <span class="requerido" aria-hidden="true">*</span></label>
+              <input 
+                type="password" 
+                id="reg-password" 
+                name="password" 
+                placeholder="Mínimo 6 caracteres" 
+                required 
+                minlength="6"
+                autocomplete="new-password">
+            </div>
+            <div class="campo-formulario">
+              <label for="reg-password-confirm">Confirmar Contraseña <span class="requerido" aria-hidden="true">*</span></label>
+              <input 
+                type="password" 
+                id="reg-password-confirm" 
+                name="passwordConfirm" 
+                placeholder="Repita la contraseña" 
+                required 
+                minlength="6"
+                autocomplete="new-password">
+            </div>
+          </div>
+
+          <button type="submit" id="btn-reg-submit" class="btn btn--primario btn--ancho-completo">
+            Registrarme como Paciente
+          </button>
+
+          <p class="acceso-cambio-modo">
+            ¿Ya tiene una cuenta registrada? 
+            <button type="button" class="btn-link" id="link-ir-login">Iniciar sesión aquí</button>
+          </p>
+        </form>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER INSTITUCIONAL -->
+  <footer class="footer">
+    <div class="contenedor">
+      <div class="footer__flex">
+        <div>
+          <a class="logo" href="index.html">Radio<span>Care</span></a>
+          <p style="margin-top:12px;max-width:34ch">Clínica de diagnóstico radiológico con entrega digital de resultados vía PACS/DICOM.</p>
+        </div>
+        <nav aria-label="Enlaces del sitio">
+          <h2>Sitio</h2>
+          <ul>
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="servicios.html">Servicios</a></li>
+            <li><a href="nosotros.html">Nosotros</a></li>
+            <li><a href="citas.html">Agendar cita</a></li>
+          </ul>
+        </nav>
+        <div>
+          <h2>Horarios</h2>
+          <ul>
+            <li>Lun – Vie: 6:30 – 16:30</li>
+            <li>Sábado: 7:00 – 12:00</li>
+            <li>Domingo: cerrado</li>
+          </ul>
+        </div>
+        <div>
+          <h2>Contacto</h2>
+          <address>
+            <p>Colonia Escalón, San Salvador</p>
+            <p><a href="tel:+50322356906">+503 2235-6906</a></p>
+            <p><a href="mailto:radiocaresv@gmail.com">radiocaresv@gmail.com</a></p>
+          </address>
+        </div>
+      </div>
+      <p class="footer__legal">©2026 RadioCare</p>
+    </div>
+  </footer>
+
+  <!-- MÓDULOS JAVASCRIPT ES -->
+  <script type="module" src="js/pages/navbar.js"></script>
+  <script type="module" src="js/pages/acceso.page.js"></script>
+</body>
+
+</html>
+

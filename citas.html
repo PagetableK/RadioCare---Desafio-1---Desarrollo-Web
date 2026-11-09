@@ -27,7 +27,10 @@
                     <li><a href="index.html">Inicio</a></li>
                     <li><a href="servicios.html">Servicios</a></li>
                     <li><a href="nosotros.html">Nosotros</a></li>
-                    <li><a class="btn btn--primario" href="citas.html" aria-current="page">Agendar cita</a></li>
+                    <li><a href="citas.html" aria-current="page">Agendar cita</a></li>
+                    <li id="nav-auth-container">
+                        <a class="btn btn--primario" href="acceso.html">Acceso</a>
+                    </li>
                 </ul>
             </nav>
         </div>
@@ -51,10 +54,64 @@
 
                 <div class="form-wrap">
 
-                    <form class="citas-form" action="" method="post" novalidate>
+                    <!-- Estado de carga mientras se verifica la sesión -->
+                    <div id="citas-loading" class="panel-auth-loading">
+                        <span class="rc-spinner" aria-hidden="true" style="
+                            display: inline-block;
+                            width: 40px;
+                            height: 40px;
+                            border: 3px solid rgba(0, 177, 255, 0.2);
+                            border-top-color: var(--color-clinical-cyan);
+                            border-radius: 50%;
+                            animation: rcSpin 0.7s linear infinite;
+                        "></span>
+                        <p>Verificando estado de sesión...</p>
+                    </div>
 
-                        <fieldset class="fieldset">
+                    <!-- Contenedor destacado (card) para usuarios sin sesión iniciada -->
+                    <div id="citas-auth-requerido" class="card-auth-requerido oculto" hidden style="display: none;">
+                        <div class="card-auth-requerido__icono">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="8.5" cy="7" r="4"/>
+                                <line x1="20" y1="8" x2="20" y2="14"/>
+                                <line x1="23" y1="11" x2="17" y2="11"/>
+                            </svg>
+                        </div>
+                        <h2>Inicie sesión para poder agendar una cita</h2>
+                        <p>Para resguardar su expediente radiológico, vincular sus órdenes médicas y recibir la entrega digital de resultados diagnósticos vía PACS/DICOM, es necesario identificarse en el portal.</p>
+                        <a href="acceso.html?redirect=citas.html" class="btn btn--primario card-auth-requerido__btn">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                <polyline points="10 17 15 12 10 7"/>
+                                <line x1="15" y1="12" x2="3" y2="12"/>
+                            </svg>
+                            Iniciar sesión / Registrarse
+                        </a>
+                    </div>
+
+                    <!-- Formulario de agendamiento (visible solo para usuarios autenticados) -->
+                    <form class="citas-form oculto" id="citas-form" action="" method="post" novalidate hidden style="display: none;">
+
+                        <div id="alerta-citas" aria-live="polite"></div>
+
+                        <fieldset class="fieldset" id="fieldset-paciente">
                             <legend class="legend">Datos del paciente</legend>
+
+                            <!-- Selector de destinatario del estudio -->
+                            <div class="campo campo--destinatario" style="margin-bottom: 22px;">
+                                <span class="label">¿Para quién es el estudio solicitado? <span class="requerido" aria-hidden="true">*</span></span>
+                                <div class="radio-grupo radio-grupo--fila" role="radiogroup" aria-label="Destinatario del estudio">
+                                    <label class="radio-opcion" for="para-mi">
+                                        <input type="radio" id="para-mi" name="estudio_destinatario" value="para-mi" checked>
+                                        <span>El estudio es para mí</span>
+                                    </label>
+                                    <label class="radio-opcion" for="para-familiar">
+                                        <input type="radio" id="para-familiar" name="estudio_destinatario" value="para-familiar">
+                                        <span>El estudio es para un familiar</span>
+                                    </label>
+                                </div>
+                            </div>
 
                             <div class="campo-grupo campo-grupo--2col">
                                 <div class="campo">
@@ -77,34 +134,33 @@
 
                             <div class="campo-grupo campo-grupo--2col">
                                 <div class="campo">
-                                    <label for="dui" class="label">DUI o pasaporte <span class="requerido"
+                                    <label for="dui" id="label-dui" class="label">DUI o pasaporte <span class="requerido"
                                             aria-hidden="true">*</span></label>
                                     <input type="text" id="dui" name="dui" class="input" placeholder="00000000-0"
-                                        required pattern="(\d{8}-\d|\d{9}|[A-Z]{1,2}\d{6,9})" maxlength="20"
+                                        required pattern="^\d{8}-\d$" maxlength="10"
                                         autocomplete="off"
-                                        title="DUI sin guion (9 dígitos), con guion (00000000-0) o número de pasaporte"
+                                        title="DUI en formato 00000000-0 (8 dígitos, guion y 1 dígito)"
                                         aria-describedby="dui-ayuda">
-                                    <span class="ayuda" id="dui-ayuda">DUI: 00000000-0. Pasaporte: letras y
-                                        números.</span>
+                                    <span class="ayuda" id="dui-ayuda">DUI: 00000000-0.</span>
                                 </div>
                                 <div class="campo">
-                                    <label for="nacimiento" class="label">Fecha de nacimiento <span class="requerido"
+                                    <label for="fecha-nacimiento" class="label">Fecha de nacimiento <span class="requerido"
                                             aria-hidden="true">*</span></label>
-                                    <input type="date" id="nacimiento" name="nacimiento" class="input" required
-                                        min="1920-01-01" max="2016-12-31" autocomplete="bday"
-                                        title="Ingrese su fecha de nacimiento">
+                                    <input type="date" id="fecha-nacimiento" name="nacimiento" class="input" required
+                                        min="1900-01-01" autocomplete="bday"
+                                        title="Ingrese la fecha de nacimiento del paciente">
                                 </div>
                             </div>
 
                             <div class="campo-grupo campo-grupo--2col">
                                 <div class="campo">
-                                    <label for="sexo" class="label">Sexo biológico <span class="requerido"
+                                    <label for="sexo-biologico" class="label">Sexo biológico <span class="requerido"
                                             aria-hidden="true">*</span></label>
-                                    <select id="sexo" name="sexo" class="select" required
+                                    <select id="sexo-biologico" name="sexoBiologico" class="select" required
                                         title="Requerido para protocolos radiológicos" aria-describedby="sexo-ayuda">
                                         <option value="">Seleccione…</option>
-                                        <option value="F">Femenino</option>
-                                        <option value="M">Masculino</option>
+                                        <option value="Femenino">Femenino</option>
+                                        <option value="Masculino">Masculino</option>
                                     </select>
                                     <span class="ayuda" id="sexo-ayuda">Necesario para protocolos de
                                         radioprotección.</span>
@@ -113,15 +169,21 @@
                                     <label for="embarazo" class="label">¿Podría estar embarazada? <span
                                             class="requerido" aria-hidden="true">*</span></label>
                                     <select id="embarazo" name="embarazo" class="select" required
-                                        title="Requerido para estudios con radiación">
+                                        title="Requerido para estudios con radiación" aria-describedby="embarazo-ayuda">
                                         <option value="">Seleccione…</option>
                                         <option value="no">No</option>
                                         <option value="si">Sí</option>
                                         <option value="posible">Posiblemente</option>
                                         <option value="na">No aplica</option>
                                     </select>
+                                    <span class="ayuda" id="embarazo-ayuda"></span>
                                 </div>
                             </div>
+
+                            <!-- Nota / Label accesible cuando el estudio es para mí -->
+                            <p id="nota-mi-informacion" class="nota-paciente-info">
+                                Si los datos son incorrectos, por favor modifíquelos desde el apartado <a href="mi-informacion.html" class="enlace-info">Mi información</a>.
+                            </p>
 
                         </fieldset>
 
@@ -144,17 +206,11 @@
                                     <label for="telefono" class="label">Teléfono / WhatsApp <span class="requerido"
                                             aria-hidden="true">*</span></label>
                                     <input type="tel" id="telefono" name="telefono" class="input"
-                                        placeholder="7000-0000" required pattern="(\+503 )?\d{4}-\d{4}"
+                                        placeholder="0000-0000" required pattern="^\d{4}-\d{4}$" maxlength="9"
                                         autocomplete="tel"
-                                        title="Número de teléfono o WhatsApp donde podamos confirmar la cita"
+                                        title="Número de teléfono o WhatsApp (formato: 0000-0000)"
                                         aria-describedby="tel-ayuda">
                                     <span class="ayuda" id="tel-ayuda">Formato: 0000-0000.</span>
-                                </div>
-                                <div class="campo">
-                                    <label for="medico" class="label">Médico que ordena el estudio</label>
-                                    <input type="text" id="medico" name="medico" class="input"
-                                        placeholder="Dr. / Dra. nombre" maxlength="100" autocomplete="off"
-                                        title="Nombre del médico que emite la orden de estudio (opcional)">
                                 </div>
                             </div>
 
@@ -226,17 +282,17 @@
                                 </div>
                             </div>
 
-                            <div class="campo">
-                                <label for="orden" class="label">¿Tiene orden médica escrita?</label>
+                            <div class="campo" id="campo-orden-medica">
+                                <span class="label" id="orden-label">¿Tiene orden médica escrita? <span class="requerido" aria-hidden="true">*</span></span>
                                 <div class="radio-grupo" role="group" aria-labelledby="orden-label">
                                     <label class="radio-opcion">
-                                        <input type="radio" name="orden" value="si"> Sí, tengo orden médica
+                                        <input type="radio" name="orden_medica" value="si" required> Sí, tengo orden médica
                                     </label>
                                     <label class="radio-opcion">
-                                        <input type="radio" name="orden" value="no"> No, necesito orientación
+                                        <input type="radio" name="orden_medica" value="no" required> No, necesito orientación
                                     </label>
                                     <label class="radio-opcion">
-                                        <input type="radio" name="orden" value="cotizacion"> Solo cotización, sin orden
+                                        <input type="radio" name="orden_medica" value="cotizacion" required> Solo cotización, sin orden
                                     </label>
                                 </div>
                             </div>
@@ -260,8 +316,8 @@
                                 <div class="campo">
                                     <label for="fecha" class="label">Fecha preferida <span class="requerido"
                                             aria-hidden="true">*</span></label>
-                                    <input type="date" id="fecha" name="fecha" class="input" required min="2026-10-01"
-                                        max="2027-12-31" title="Seleccione la fecha en que desea realizar su estudio"
+                                    <input type="date" id="fecha" name="fecha" class="input" required
+                                        title="Seleccione la fecha en que desea realizar su estudio"
                                         aria-describedby="fecha-ayuda">
                                     <span class="ayuda" id="fecha-ayuda">Sábados solo hasta el mediodía. Domingos no hay
                                         servicio.</span>
@@ -272,18 +328,17 @@
                                     <select id="horario" name="horario" class="select" required
                                         title="Seleccione la franja horaria de su preferencia">
                                         <option value="">Seleccione…</option>
-                                        <option value="manana-temprana">06:30 – 09:00 (mañana temprana)</option>
-                                        <option value="manana">09:00 – 12:00 (mañana)</option>
-                                        <option value="mediodia">12:00 – 14:00 (mediodía, lun-vie)</option>
-                                        <option value="tarde">14:00 – 16:30 (tarde, lun-vie)</option>
+                                        <option value="manana-temprana">6:30 a. m. – 9:00 a. m.</option>
+                                        <option value="manana">9:00 a. m. – 12:00 p. m.</option>
+                                        <option value="mediodia">12:00 p. m. – 2:00 p. m. (mediodía, lun-vie)</option>
+                                        <option value="tarde">2:00 p. m. – 4:30 p. m. (tarde, lun-vie)</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="campo">
-                                <label for="fecha-alt" class="label">Fecha alternativa (opcional)</label>
-                                <input type="date" id="fecha-alt" name="fecha-alt" class="input" min="2026-10-01"
-                                    max="2027-12-31"
+                                <label for="fecha-alternativa" class="label">Fecha alternativa (opcional)</label>
+                                <input type="date" id="fecha-alternativa" name="fecha-alt" class="input"
                                     title="Fecha alternativa en caso de que la preferida no tenga disponibilidad">
                             </div>
 
@@ -382,7 +437,7 @@
                             <p class="nota-requerido"><span class="requerido" aria-hidden="true">*</span> Campos
                                 obligatorios</p>
 
-                            <button type="button" class="btn btn--primario btn--submit">
+                            <button type="submit" id="btn-submit-cita" class="btn btn--primario btn--submit">
                                 Enviar solicitud de cita
                             </button>
                         </fieldset>
@@ -492,6 +547,9 @@
             <p class="footer__legal">©2026 RadioCare</p>
         </div>
     </footer>
+    <!-- SCRIPTS ES MODULES -->
+    <script type="module" src="js/pages/navbar.js"></script>
+    <script type="module" src="js/pages/citas.page.js"></script>
 </body>
 
 </html>

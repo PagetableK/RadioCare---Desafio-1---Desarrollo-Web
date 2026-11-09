@@ -1,0 +1,226 @@
+/* =========================================================
+   RadioCare - Estilos de la Página de Acceso y Registro
+   ========================================================= */
+
+.acceso-seccion {
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  background: radial-gradient(circle at 50% 20%, rgba(64, 60, 213, 0.25) 0%, rgba(22, 22, 92, 0.95) 75%);
+}
+
+.acceso-card {
+  width: 100%;
+  max-width: 500px;
+  background: var(--color-iris-shadow);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 28px;
+  padding: 36px 32px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(177, 166, 246, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.acceso-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-clinical-cyan), var(--color-mint-vital), var(--color-lilac-mist));
+}
+
+.acceso-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.acceso-header .logo {
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.acceso-header h1 {
+  font-size: 26px;
+  letter-spacing: -0.03em;
+  color: var(--color-cloud-white);
+  margin-bottom: 8px;
+}
+
+.acceso-header p {
+  font-size: 14px;
+  color: var(--color-ash);
+  max-width: 40ch;
+  margin: 0 auto;
+}
+
+/* Selector de pestañas accesible */
+.acceso-tabs {
+  display: flex;
+  background: var(--color-deep-iris);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 9999px;
+  padding: 4px;
+  margin-bottom: 24px;
+  gap: 4px;
+}
+
+.acceso-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--color-ash);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  text-align: center;
+}
+
+.acceso-tab:hover {
+  color: var(--color-cloud-white);
+}
+
+.acceso-tab.activo {
+  background: var(--color-iris-pulse);
+  color: var(--color-cloud-white);
+  box-shadow: 0 4px 12px rgba(64, 60, 213, 0.35);
+}
+
+.acceso-tab:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-clinical-cyan);
+}
+
+/* Campos de Formulario */
+.campo-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.campo-fila {
+  display: flex;
+  gap: 14px;
+}
+
+.campo-fila > .campo-formulario {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-formulario label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-pearl);
+  letter-spacing: 0.01em;
+}
+
+.campo-formulario label .requerido {
+  color: var(--color-clinical-cyan);
+  margin-left: 2px;
+}
+
+.campo-formulario input,
+.campo-formulario select {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--color-deep-iris);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 14px;
+  color: var(--color-cloud-white);
+  font-family: inherit;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.campo-formulario select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239494a9' stroke-width='2'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.campo-formulario select option {
+  background: var(--color-iris-shadow);
+  color: var(--color-cloud-white);
+}
+
+.campo-formulario input::placeholder {
+  color: var(--color-fog);
+  opacity: 0.7;
+}
+
+.campo-formulario input:focus,
+.campo-formulario select:focus {
+  border-color: var(--color-clinical-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 177, 255, 0.2);
+}
+
+.campo-formulario .ayuda {
+  font-size: 12px;
+  color: var(--color-fog);
+  margin-top: 2px;
+}
+
+.btn--ancho-completo {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.acceso-cambio-modo {
+  text-align: center;
+  margin-top: 22px;
+  font-size: 14px;
+  color: var(--color-ash);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-clinical-cyan);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+
+.btn-link:hover {
+  color: var(--color-mint-vital);
+}
+
+.btn-link:focus-visible {
+  outline: 2px solid var(--color-clinical-cyan);
+  border-radius: 4px;
+}
+
+@media (max-width: 580px) {
+  .acceso-card {
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  .campo-fila {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+

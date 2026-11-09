@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Clínico y Coordinación | RadioCare</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/panel.css">
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="contenedor header__barra">
+      <a class="logo" href="index.html" aria-label="RadioCare, ir al inicio">
+        <svg viewBox="0 0 32 32" fill="none" stroke="#b1a6f6" stroke-width="2" aria-hidden="true">
+          <circle cx="16" cy="16" r="13" />
+          <path d="M5 17h6l3-7 4 12 3-5h6" stroke="#00b1ff" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Radio<span>Care</span>
+      </a>
+      <nav class="nav" aria-label="Navegación principal">
+        <input type="checkbox" id="menu" class="nav__toggle" aria-label="Abrir menú">
+        <label for="menu" class="nav__boton" aria-hidden="true"><i></i><i></i><i></i></label>
+        <ul class="nav__lista">
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="servicios.html">Servicios</a></li>
+          <li><a href="nosotros.html">Nosotros</a></li>
+          <li><a href="panel-clinico.html" aria-current="page">Panel Clínico</a></li>
+          <li id="nav-auth-container"></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="panel-hero">
+      <div class="contenedor">
+        <div class="panel-hero__header">
+          <div>
+            <span class="panel-badge panel-badge--coordinador">● Portal de Coordinación Radiológica</span>
+            <h1 id="saludo-coordinador">Panel Clínico de Control</h1>
+            <p id="info-coordinador">Gestión integral de citas médicas, estado de salas de ultrasonido y asignación de informes radiológicos.</p>
+          </div>
+          <div>
+            <a class="btn btn--primario" href="citas.html">+ Agendar cita médica</a>
+          </div>
+        </div>
+
+        <!-- Métricas del día -->
+        <div class="panel-grid-stats">
+          <div class="stat-tarjeta">
+            <span class="stat-tarjeta__valor" id="stat-citas-hoy">14</span>
+            <span class="stat-tarjeta__etiqueta">Estudios programados hoy</span>
+          </div>
+          <div class="stat-tarjeta">
+            <span class="stat-tarjeta__valor" id="stat-completados">9</span>
+            <span class="stat-tarjeta__etiqueta">Informes completados</span>
+          </div>
+          <div class="stat-tarjeta">
+            <span class="stat-tarjeta__valor" id="stat-pendientes">5</span>
+            <span class="stat-tarjeta__etiqueta">En sala / pendientes de firma</span>
+          </div>
+          <div class="stat-tarjeta">
+            <span class="stat-tarjeta__valor" id="stat-tiempo-promedio">22 min</span>
+            <span class="stat-tarjeta__etiqueta">Tiempo promedio de estudio</span>
+          </div>
+        </div>
+
+        <!-- Tabla de Agenda del Día -->
+        <div class="panel-seccion-card">
+          <div class="panel-seccion-header">
+            <h2>Agenda de Pacientes y Procedimientos</h2>
+            <span style="font-size: 13px; color: var(--color-fog);">Actualizado en tiempo real</span>
+          </div>
+
+          <div class="panel-tabla-wrap">
+            <table class="panel-tabla">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Paciente</th>
+                  <th>Estudio Radiológico</th>
+                  <th>Sala / Equipo</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-citas-cuerpo">
+                <tr>
+                  <td><strong>07:30 AM</strong></td>
+                  <td>Roberto Carlos Martínez</td>
+                  <td>Ultrasonido Abdominal Superior</td>
+                  <td>Sala Ecografía 1 (GE Logiq E10)</td>
+                  <td><span class="badge-estado badge-estado--completada">Completado</span></td>
+                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Ver Informe</a></td>
+                </tr>
+                <tr>
+                  <td><strong>08:15 AM</strong></td>
+                  <td>Elena Patricia Vásquez</td>
+                  <td>Doppler Venoso Miembros Inferiores</td>
+                  <td>Sala Vascular (Philips Epiq 7)</td>
+                  <td><span class="badge-estado badge-estado--completada">Completado</span></td>
+                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Ver Informe</a></td>
+                </tr>
+                <tr>
+                  <td><strong>09:00 AM</strong></td>
+                  <td>Carlos Ernesto Benítez</td>
+                  <td>Ultrasonido de Tiroides y Cuello</td>
+                  <td>Sala Ecografía 2</td>
+                  <td><span class="badge-estado badge-estado--confirmada">En Sala</span></td>
+                  <td><a href="#" class="btn btn--primario" style="padding: 6px 14px; font-size: 13px;">Capturar</a></td>
+                </tr>
+                <tr>
+                  <td><strong>10:00 AM</strong></td>
+                  <td>Lucía Marisol Hernández</td>
+                  <td>Eco Doppler Carotídeo y Vertebral</td>
+                  <td>Sala Vascular</td>
+                  <td><span class="badge-estado badge-estado--pendiente">Programada</span></td>
+                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Recepcionar</a></td>
+                </tr>
+                <tr>
+                  <td><strong>10:45 AM</strong></td>
+                  <td>Jorge Alberto Rivas</td>
+                  <td>Músculo-esquelético: Hombro</td>
+                  <td>Sala Ecografía 1</td>
+                  <td><span class="badge-estado badge-estado--pendiente">Programada</span></td>
+                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Recepcionar</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="contenedor">
+      <p class="footer__legal">©2026 RadioCare - Panel Clínico de Coordinación</p>
+    </div>
+  </footer>
+
+  <script type="module" src="js/pages/navbar.js"></script>
+  <script type="module" src="js/pages/panel.page.js"></script>
+</body>
+
+</html>
+

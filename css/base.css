@@ -26,6 +26,11 @@
     padding: 0;
 }
 
+.oculto,
+[hidden] {
+    display: none !important;
+}
+
 html {
     scroll-behavior: smooth;
 }

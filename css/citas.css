@@ -575,3 +575,31 @@ input[type="date"]:user-valid {
 .citas-form[hidden] {
     display: none !important;
 }
+
+/* Aviso interactivo de preparación clínica en formulario de citas */
+.citas-prep-aviso {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(0, 177, 255, 0.08);
+    border: 1px solid rgba(0, 177, 255, 0.3);
+    border-radius: 12px;
+    animation: rcFadeIn 0.25s ease-out;
+}
+
+.citas-prep-aviso__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-clinical-cyan);
+    margin-bottom: 4px;
+}
+
+.citas-prep-aviso__texto {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-pearl);
+    margin: 0;
+}

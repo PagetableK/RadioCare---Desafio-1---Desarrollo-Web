@@ -60,6 +60,41 @@ window.addEventListener('pageshow', (event) => {
 });
 
 /* ==========================================================================
+   MÁSCARAS Y RESTRICCIONES EN CAMPOS DE ENTRADA
+   ========================================================================== */
+if (inputNacimiento) {
+  const hoyStr = new Date().toISOString().split('T')[0];
+  inputNacimiento.max = hoyStr;
+}
+
+if (inputDui) {
+  inputDui.setAttribute('maxlength', '10');
+  inputDui.addEventListener('input', (e) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length > 9) valor = valor.slice(0, 9);
+    if (valor.length > 8) {
+      e.target.value = `${valor.slice(0, 8)}-${valor.slice(8)}`;
+    } else {
+      e.target.value = valor;
+    }
+  });
+}
+
+if (inputTelefono) {
+  inputTelefono.setAttribute('maxlength', '9');
+  inputTelefono.addEventListener('input', (e) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.startsWith('503') && valor.length > 8) valor = valor.slice(3);
+    if (valor.length > 8) valor = valor.slice(0, 8);
+    if (valor.length > 4) {
+      e.target.value = `${valor.slice(0, 4)}-${valor.slice(4)}`;
+    } else {
+      e.target.value = valor;
+    }
+  });
+}
+
+/* ==========================================================================
    PRECARGA DE CAMPOS EN EL FORMULARIO
    ========================================================================== */
 function precargarCampos(datos, authUser) {
@@ -76,7 +111,14 @@ function precargarCampos(datos, authUser) {
     inputNacimiento.value = datos?.nacimiento || datos?.fechaNacimiento || '';
   }
   if (inputSexo) {
-    inputSexo.value = datos?.sexo || '';
+    const rawSexo = datos?.sexoBiologico || datos?.sexo || '';
+    if (rawSexo === 'F' || rawSexo.toLowerCase() === 'femenino') {
+      inputSexo.value = 'Femenino';
+    } else if (rawSexo === 'M' || rawSexo.toLowerCase() === 'masculino') {
+      inputSexo.value = 'Masculino';
+    } else {
+      inputSexo.value = rawSexo;
+    }
   }
   if (inputTelefono) {
     inputTelefono.value = datos?.telefono || '';
@@ -201,7 +243,9 @@ if (formInfo) {
         apellido,
         dui,
         nacimiento,
+        fechaNacimiento: nacimiento,
         sexo,
+        sexoBiologico: sexo,
         telefono,
         email: usuarioAuthActual.email,
         rol: 'paciente',

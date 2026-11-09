@@ -8,6 +8,7 @@
 import { auth, db, onAuthChange, obtenerUsuarioActual } from "../services/auth.service.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { solicitarCita } from "../services/citas.service.js";
+import { obtenerEstudios } from "../services/estudios.service.js";
 import { mostrarAlerta, limpiarAlerta, setBotonCargando } from "../utils/ui.js";
 import { 
   campoNoVacio, 
@@ -48,6 +49,8 @@ const telefonoInput = document.getElementById('telefono') || document.querySelec
 
 // Campos de estudio y programación
 const estudioSelect = document.getElementById('estudio');
+const prepAviso = document.getElementById('citas-prep-aviso');
+const prepTexto = document.getElementById('citas-prep-texto');
 const modalidadSelect = document.getElementById('modalidad');
 const regionInput = document.getElementById('region');
 const fechaInput = document.getElementById('fecha');
@@ -57,9 +60,111 @@ const notasTextarea = document.getElementById('notas');
 const consentimientoCheck = document.getElementById('consentimiento');
 const recordatorioCheck = document.getElementById('recordatorio');
 
-// Estado local del usuario en sesión
+// Estado local del usuario en sesión y catálogo
 let usuarioAuthActual = null;
 let datosUsuarioRegistrado = null;
+let listaEstudiosCache = [];
+
+/* ==========================================================================
+   CATÁLOGO CLÍNICO DINÁMICO (POBLACIÓN DE <OPTION> DESDE FIRESTORE)
+   ========================================================================== */
+
+/**
+ * Actualiza la caja informativa de preparación clínica según el estudio seleccionado.
+ */
+function actualizarAvisoPreparacion() {
+  if (!estudioSelect || !prepAviso || !prepTexto) return;
+  const valor = estudioSelect.value;
+  if (!valor) {
+    prepAviso.style.display = 'none';
+    prepTexto.textContent = '';
+    return;
+  }
+
+  const selectedOpt = estudioSelect.options[estudioSelect.selectedIndex];
+  let prep = '';
+  if (selectedOpt?.dataset?.preparacion) {
+    try {
+      prep = decodeURIComponent(selectedOpt.dataset.preparacion);
+    } catch (_) {
+      prep = selectedOpt.dataset.preparacion;
+    }
+  }
+
+  if (!prep && listaEstudiosCache.length > 0) {
+    const est = listaEstudiosCache.find(e => e.id === valor || e.nombre === valor);
+    if (est?.preparacion) prep = est.preparacion;
+  }
+
+  if (prep) {
+    prepTexto.textContent = prep;
+    prepAviso.style.display = 'block';
+  } else {
+    prepAviso.style.display = 'none';
+    prepTexto.textContent = '';
+  }
+}
+
+if (estudioSelect) {
+  estudioSelect.addEventListener('change', actualizarAvisoPreparacion);
+}
+
+/**
+ * Consulta la colección 'estudios' desde Firestore (ejecutando seed si estuviera vacía)
+ * y puebla dinámicamente el selector con grupos categorizados (<optgroup>).
+ */
+export async function poblarSelectorEstudios() {
+  if (!estudioSelect) return;
+
+  try {
+    const estudios = await obtenerEstudios();
+    if (estudios && estudios.length > 0) {
+      listaEstudiosCache = estudios;
+
+      // Parámetro 'estudio' en URL si viene desde servicios.html
+      const urlParams = new URLSearchParams(window.location.search);
+      const estudioParam = urlParams.get('estudio');
+      const valorSeleccionado = estudioParam || estudioSelect.value;
+
+      // Agrupar por categoría médica
+      const categorias = {};
+      estudios.forEach((est) => {
+        const cat = est.categoria || 'Ultrasonografía';
+        if (!categorias[cat]) categorias[cat] = [];
+        categorias[cat].push(est);
+      });
+
+      let optionsHtml = '<option value="">Seleccione…</option>';
+      for (const [cat, lista] of Object.entries(categorias)) {
+        optionsHtml += `<optgroup label="${cat}">`;
+        lista.forEach((est) => {
+          const prepEncoded = encodeURIComponent(est.preparacion || '');
+          optionsHtml += `<option value="${est.id}" data-nombre="${est.nombre}" data-preparacion="${prepEncoded}">${est.nombre}</option>`;
+        });
+        optionsHtml += `</optgroup>`;
+      }
+
+      estudioSelect.innerHTML = optionsHtml;
+
+      if (valorSeleccionado) {
+        const optEncontrada = Array.from(estudioSelect.options).find(opt => 
+          opt.value === valorSeleccionado || 
+          opt.value.toLowerCase() === valorSeleccionado.toLowerCase()
+        );
+        if (optEncontrada) {
+          estudioSelect.value = optEncontrada.value;
+        }
+      }
+
+      actualizarAvisoPreparacion();
+    }
+  } catch (error) {
+    console.warn("Aviso al poblar selector de estudios desde Firestore:", error);
+  }
+}
+
+// Inicializar catálogo al cargar el script
+poblarSelectorEstudios();
 
 /* ==========================================================================
    HELPER DE ERROR DE VALIDACIÓN CON SCROLL VISUAL
@@ -80,26 +185,25 @@ function mostrarErrorValidacion(campoNombre, mensaje) {
 }
 
 /* ==========================================================================
-   HELPER: FECHA ACTUAL EN FORMATO YYYY-MM-DD (ZONA LOCAL)
+   HELPER: FECHA LOCAL EN FORMATO YYYY-MM-DD (ZONA LOCAL SIN OFFSET UTC)
    ========================================================================== */
-function obtenerFechaHoyISO() {
-  const ahora = new Date();
-  const anio = ahora.getFullYear();
-  const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-  const dia = String(ahora.getDate()).padStart(2, '0');
+function obtenerFechaLocalISO(diasOffset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + diasOffset);
+  const anio = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
   return `${anio}-${mes}-${dia}`;
 }
 
 /* ==========================================================================
    INICIALIZACIÓN DE RESTRICCIONES DE FECHA (REGLAS CLÍNICAS)
-   - Excluir estrictamente la fecha actual (mínimo: a partir de mañana)
+   - Excluir estrictamente fechas pasadas y fecha actual (mínimo: a partir de mañana)
    - Flexibilidad en nacimiento para pediatría / recién nacidos (máximo: hoy)
    ========================================================================== */
 function inicializarRestriccionesFechas() {
-  // 1. Fecha mínima de agendamiento (al menos 24 horas de antelación)
-  const manana = new Date();
-  manana.setDate(manana.getDate() + 1);
-  const fechaMinima = manana.toISOString().split('T')[0];
+  // 1. Fecha mínima de agendamiento (al menos 24 horas de antelación en hora local)
+  const fechaMinima = obtenerFechaLocalISO(1);
 
   if (fechaInput) {
     fechaInput.min = fechaMinima;
@@ -110,8 +214,7 @@ function inicializarRestriccionesFechas() {
 
   // 2. Fecha máxima de nacimiento (soporte pediátrico: máximo hoy)
   if (inputFechaNacimiento) {
-    const hoyStr = new Date().toISOString().split('T')[0];
-    inputFechaNacimiento.max = hoyStr;
+    inputFechaNacimiento.max = obtenerFechaLocalISO(0);
   }
 }
 
@@ -268,9 +371,46 @@ function actualizarFranjasHorariasSegunFecha(fechaValor) {
   }
 }
 
+/**
+ * Evalúa si la fecha es estrictamente futura (mínimo a partir de mañana en hora local).
+ * Si es pasada o es hoy: limpia el campo, aplica borde de error y muestra el mensaje accesible requerido.
+ * @param {HTMLInputElement} input
+ * @returns {boolean}
+ */
+function validarFechaAnticipada(input) {
+  if (!input || !input.value) {
+    input.style.borderColor = '';
+    input.style.boxShadow = '';
+    return true;
+  }
+
+  const hoyStr = obtenerFechaLocalISO(0);
+  if (input.value <= hoyStr) {
+    input.value = '';
+    input.style.borderColor = '#ff4d6d';
+    input.style.boxShadow = '0 0 0 3px rgba(255, 77, 109, 0.2)';
+    mostrarAlerta(
+      alertaCitas,
+      'Las citas deben solicitarse con al menos un día de anticipación (a partir de mañana)',
+      'warning'
+    );
+    return false;
+  } else {
+    input.style.borderColor = '';
+    input.style.boxShadow = '';
+    return true;
+  }
+}
+
 // Escuchar cambios reactivos en #fecha
 if (fechaInput) {
   const handlerFecha = () => {
+    const esAnticipada = validarFechaAnticipada(fechaInput);
+    if (!esAnticipada) {
+      actualizarFranjasHorariasSegunFecha('');
+      return;
+    }
+
     const noEsDomingo = validarDomingo(fechaInput);
     if (noEsDomingo) {
       actualizarFranjasHorariasSegunFecha(fechaInput.value);
@@ -286,7 +426,10 @@ if (fechaInput) {
 // Escuchar cambios reactivos en #fecha-alternativa
 if (fechaAltInput) {
   const handlerFechaAlt = () => {
-    validarDomingo(fechaAltInput);
+    const esAnticipada = validarFechaAnticipada(fechaAltInput);
+    if (esAnticipada) {
+      validarDomingo(fechaAltInput);
+    }
   };
 
   fechaAltInput.addEventListener('change', handlerFechaAlt);
@@ -342,6 +485,12 @@ function mostrarVistaNoAutenticado() {
     citasAuthRequerido.style.display = 'flex';
     citasAuthRequerido.hidden = false;
     citasAuthRequerido.classList.remove('oculto');
+
+    const btnLogin = citasAuthRequerido.querySelector('.card-auth-requerido__btn');
+    if (btnLogin) {
+      const target = 'citas.html' + window.location.search;
+      btnLogin.href = `acceso.html?redirect=${encodeURIComponent(target)}`;
+    }
   }
   if (citasForm) {
     citasForm.style.display = 'none';
@@ -625,6 +774,7 @@ onAuthChange(async ({ authUser, userData }) => {
 
   mostrarVistaAutenticado();
   inicializarRestriccionesFechas();
+  await poblarSelectorEstudios();
 
   if (radioParaMi) {
     radioParaMi.checked = true;
@@ -687,7 +837,7 @@ if (citasForm) {
       }
     }
 
-    const hoyStr = new Date().toISOString().split('T')[0];
+    const hoyStr = obtenerFechaLocalISO(0);
 
     if (!nacimiento) {
       mostrarAlerta(alertaCitas, 'Por favor ingrese la fecha de nacimiento del paciente.', 'warning');
@@ -751,6 +901,28 @@ if (citasForm) {
       // Mostrar feedback visual de error, hacer scroll al campo y abortar el envío
       mostrarErrorValidacion("orden_medica", "Debe indicar si cuenta con orden médica escrita.");
       return;
+    }
+
+    if (modalidad === 'cita' && tieneOrdenSeleccionada.value === 'cotizacion') {
+      mostrarErrorValidacion("orden_medica", "Para agendar una cita presencial con fecha, indique si cuenta con orden médica escrita o si requiere orientación clínica.");
+      return;
+    }
+
+    // Extraer nombre clínico y preparación del estudio
+    const optionSeleccionada = estudioSelect?.options[estudioSelect.selectedIndex];
+    const estudioId = estudioSelect?.value || '';
+    const estudioNombre = optionSeleccionada?.dataset?.nombre || optionSeleccionada?.text || estudioId;
+    let estudioPreparacion = '';
+    if (optionSeleccionada?.dataset?.preparacion) {
+      try {
+        estudioPreparacion = decodeURIComponent(optionSeleccionada.dataset.preparacion);
+      } catch (_) {
+        estudioPreparacion = optionSeleccionada.dataset.preparacion;
+      }
+    }
+    if (!estudioPreparacion && listaEstudiosCache.length > 0) {
+      const itemEstudio = listaEstudiosCache.find(e => e.id === estudioId || e.nombre === estudioId);
+      if (itemEstudio?.preparacion) estudioPreparacion = itemEstudio.preparacion;
     }
 
     // 2. Validación estricta de fechas y franjas horarias (Regla clínica: >= 24h antelación)
@@ -831,10 +1003,15 @@ if (citasForm) {
           telefono
         },
         estudio: {
-          tipo: estudio,
+          id: estudioId,
+          tipo: estudioId,
+          nombre: estudioNombre,
+          preparacion: estudioPreparacion,
           modalidad,
           region
         },
+        estudioNombre,
+        preparacion: estudioPreparacion,
         agenda: {
           fecha,
           horario,

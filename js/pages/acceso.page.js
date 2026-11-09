@@ -96,7 +96,7 @@ function redirigirSegunRol(userData) {
   const redirectTarget = urlParams.get('redirect');
   const rol = (userData?.rol || 'paciente').toLowerCase();
 
-  if (redirectTarget && (redirectTarget === 'citas.html' || redirectTarget === 'mi-informacion.html')) {
+  if (redirectTarget && (redirectTarget.startsWith('citas.html') || redirectTarget.startsWith('mi-informacion.html'))) {
     window.location.replace(redirectTarget);
     return;
   }

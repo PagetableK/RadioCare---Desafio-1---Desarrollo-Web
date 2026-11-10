@@ -1,19 +1,50 @@
 /**
  * RadioCare - Servicio de Citas Médicas (citas.service.js)
- * Integración con colección 'citas' en Firestore con Firebase v10 Modular SDK.
+ * Integración con colección 'citas' en Firestore (Firebase v10 Modular SDK).
+ *
+ * ─── FLUJO DEL PACIENTE (preservado íntegro) ────────────────────────────────
+ *   solicitarCita()           – Registrar nueva cita en estado 'pendiente'.
+ *   obtenerCitasPorUsuario()  – Consultar citas propias filtradas por usuarioId.
+ *   cancelarCita()            – Pasar estado a 'cancelada'.
+ *
+ * ─── FLUJO DEL COORDINADOR (métodos administrativos añadidos) ───────────────
+ *   obtenerTodasLasCitas()    – Listar todos los documentos de la colección.
+ *   cambiarEstadoCita()       – Actualizar campo 'estado' con timestamp.
+ *   asignarRadiologo()        – Asignar médico radiólogo responsable.
+ *   eliminarCitaDefinitiva()  – Eliminación física del documento (deleteDoc).
  */
 
 import { db } from "./auth.service.js";
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  query, 
-  where, 
-  serverTimestamp 
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+/* ============================================================================
+   PERSONAL MÉDICO AUTORIZADO
+   Lista oficial de radiólogos que pueden ser asignados por el coordinador.
+   ============================================================================ */
+export const RADIOLOGOS_OFICIALES = [
+  "Dr. Gerardo Franco",
+  "Dra. Itzel Suazo Sorto",
+  "Dra. Susana Cruz"
+];
+
+/* ============================================================================
+   ESTADOS VÁLIDOS DE CITA
+   ============================================================================ */
+export const ESTADOS_CITA = ["pendiente", "confirmada", "completada", "cancelada"];
+
+/* ============================================================================
+   FLUJO DEL PACIENTE — Funciones originales (no modificadas)
+   ============================================================================ */
 
 /**
  * Registra una nueva cita médica en la colección 'citas' de Firestore.
@@ -102,6 +133,106 @@ export async function cancelarCita(citaId) {
     return true;
   } catch (error) {
     console.error("Error al cancelar cita en Firestore:", error);
+    throw error;
+  }
+}
+
+/* ============================================================================
+   FLUJO DEL COORDINADOR — Métodos administrativos
+   ============================================================================ */
+
+/**
+ * Obtiene el listado completo de todos los documentos en la colección 'citas'.
+ * Solo el coordinador tiene permisos de lectura total en Firestore Rules.
+ * @returns {Promise<Array<object>>} Arreglo con todas las citas registradas.
+ */
+export async function obtenerTodasLasCitas() {
+  try {
+    const citasRef = collection(db, 'citas');
+    const snapshot = await getDocs(citasRef);
+    const citas = [];
+    snapshot.forEach((docSnap) => {
+      citas.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    return citas;
+  } catch (error) {
+    console.error("Error al obtener todas las citas (coordinador):", error);
+    throw error;
+  }
+}
+
+/**
+ * Actualiza el campo 'estado' de una cita y registra la marca de tiempo 'updatedAt'.
+ * Estados válidos: "pendiente" | "confirmada" | "completada" | "cancelada".
+ * @param {string} citaId    - ID del documento en la colección 'citas'.
+ * @param {string} nuevoEstado - Nuevo valor del campo estado.
+ * @returns {Promise<boolean>}
+ */
+export async function cambiarEstadoCita(citaId, nuevoEstado) {
+  if (!citaId) throw new Error("ID de cita requerido para cambiar estado.");
+  if (!ESTADOS_CITA.includes(nuevoEstado)) {
+    throw new Error(`Estado inválido: "${nuevoEstado}". Estados permitidos: ${ESTADOS_CITA.join(', ')}.`);
+  }
+  try {
+    const citaRef = doc(db, 'citas', citaId);
+    await updateDoc(citaRef, {
+      estado: nuevoEstado,
+      updatedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error(`Error al cambiar estado de cita ${citaId} a "${nuevoEstado}":`, error);
+    throw error;
+  }
+}
+
+/**
+ * Asigna el médico radiólogo responsable de una cita.
+ * El nombre debe pertenecer al listado oficial de RADIOLOGOS_OFICIALES.
+ * Almacena el valor en 'medicoAsignado' y registra 'updatedAt'.
+ * @param {string} citaId       - ID del documento en la colección 'citas'.
+ * @param {string} nombreMedico - Nombre del radiólogo a asignar (o cadena vacía para desasignar).
+ * @returns {Promise<boolean>}
+ */
+export async function asignarRadiologo(citaId, nombreMedico) {
+  if (!citaId) throw new Error("ID de cita requerido para asignar radiólogo.");
+
+  // Permitir cadena vacía para desasignar, pero validar si se especifica un nombre
+  if (nombreMedico && !RADIOLOGOS_OFICIALES.includes(nombreMedico)) {
+    throw new Error(
+      `Radiólogo inválido: "${nombreMedico}". ` +
+      `Personal autorizado: ${RADIOLOGOS_OFICIALES.join(', ')}.`
+    );
+  }
+
+  try {
+    const citaRef = doc(db, 'citas', citaId);
+    await updateDoc(citaRef, {
+      medicoAsignado: nombreMedico || null,
+      updatedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error(`Error al asignar radiólogo "${nombreMedico}" a cita ${citaId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Elimina físicamente el documento de una cita de la colección 'citas' en Firestore.
+ * Esta operación es IRREVERSIBLE. Invocar solo tras confirmación explícita del coordinador.
+ * @param {string} citaId - ID del documento a eliminar.
+ * @returns {Promise<boolean>}
+ */
+export async function eliminarCitaDefinitiva(citaId) {
+  if (!citaId) throw new Error("ID de cita requerido para eliminar.");
+  try {
+    const citaRef = doc(db, 'citas', citaId);
+    await deleteDoc(citaRef);
+    console.log(`Cita ${citaId} eliminada definitivamente de Firestore.`);
+    return true;
+  } catch (error) {
+    console.error(`Error al eliminar cita ${citaId} de Firestore:`, error);
     throw error;
   }
 }

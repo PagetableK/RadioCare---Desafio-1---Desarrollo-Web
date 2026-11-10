@@ -4,9 +4,307 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel Clínico y Coordinación | RadioCare</title>
+  <title>Panel Clínico · Coordinación Radiológica | RadioCare</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/panel.css">
+
+  <!-- Ocultar el contenido principal hasta validar rol 'coordinador' (Anti-flicker) -->
+  <style>
+    /* =========================================================
+       ESTILOS EXCLUSIVOS DEL PANEL ADMINISTRATIVO
+       ========================================================= */
+
+    /* Loader de verificación de sesión */
+    #panel-auth-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      min-height: 65vh;
+      text-align: center;
+      color: var(--color-ash);
+      font-size: 15px;
+    }
+
+    /* Spinner de carga */
+    .rc-spinner {
+      display: inline-block;
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(0, 177, 255, 0.2);
+      border-top-color: var(--color-clinical-cyan);
+      border-radius: 50%;
+      animation: rcSpin 0.75s linear infinite;
+    }
+
+    @keyframes rcSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Barra de controles (búsqueda + filtros) */
+    .panel-controles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .panel-controles__busqueda {
+      flex: 1 1 220px;
+      min-width: 180px;
+      position: relative;
+    }
+
+    .panel-controles__busqueda svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      stroke: var(--color-fog);
+      pointer-events: none;
+    }
+
+    .panel-input {
+      width: 100%;
+      padding: 10px 14px 10px 40px;
+      background: rgba(22, 22, 92, 0.6);
+      border: 1px solid var(--color-iris-border);
+      border-radius: 12px;
+      color: var(--color-cloud-white);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .panel-input:focus {
+      border-color: var(--color-clinical-cyan);
+    }
+
+    .panel-input::placeholder {
+      color: var(--color-fog);
+    }
+
+    .panel-select {
+      padding: 10px 14px;
+      background: rgba(22, 22, 92, 0.6);
+      border: 1px solid var(--color-iris-border);
+      border-radius: 12px;
+      color: var(--color-cloud-white);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      min-width: 160px;
+    }
+
+    .panel-select:focus {
+      border-color: var(--color-clinical-cyan);
+    }
+
+    .panel-select option {
+      background: #1b1a55;
+      color: var(--color-cloud-white);
+    }
+
+    /* Select de acciones dentro de la tabla */
+    .select-accion {
+      padding: 6px 10px;
+      background: rgba(22, 22, 92, 0.8);
+      border: 1px solid var(--color-iris-border);
+      border-radius: 8px;
+      color: var(--color-cloud-white);
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s, opacity 0.2s;
+      max-width: 160px;
+    }
+
+    .select-accion:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .select-accion:focus {
+      border-color: var(--color-clinical-cyan);
+    }
+
+    .select-accion option {
+      background: #1b1a55;
+    }
+
+    /* Botón eliminar en tabla */
+    .btn-eliminar-cita {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 77, 109, 0.12);
+      border: 1px solid #ff4d6d;
+      color: #ff8597;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .btn-eliminar-cita:hover {
+      background: rgba(255, 77, 109, 0.28);
+      color: #fff;
+    }
+
+    .btn-eliminar-cita svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    /* Notificación toast de retroalimentación */
+    .rc-toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 9000;
+      padding: 12px 20px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      max-width: 340px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: rcToastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .rc-toast--exito {
+      background: rgba(0, 255, 170, 0.18);
+      border: 1px solid var(--color-mint-vital);
+      color: var(--color-mint-vital);
+    }
+
+    .rc-toast--error {
+      background: rgba(255, 77, 109, 0.18);
+      border: 1px solid #ff4d6d;
+      color: #ffb3c1;
+    }
+
+    @keyframes rcToastIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Modal de confirmación de eliminación */
+    .modal-confirmacion {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-confirmacion.oculto {
+      display: none !important;
+    }
+
+    .modal-confirmacion__backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 36, 0.78);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .modal-confirmacion__caja {
+      position: relative;
+      z-index: 10000;
+      background: linear-gradient(145deg, #201e61 0%, #161545 100%);
+      border: 1.5px solid #ff4d6d;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 420px;
+      padding: 32px 28px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 20px rgba(255,77,109,0.2);
+      animation: rcModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes rcModalIn {
+      from { opacity: 0; transform: scale(0.93) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-confirmacion__icono {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(255,77,109,0.15);
+      border: 1.5px solid #ff4d6d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      color: #ff8597;
+    }
+
+    .modal-confirmacion__icono svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .modal-confirmacion__titulo {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--color-cloud-white);
+    }
+
+    .modal-confirmacion__texto {
+      font-size: 14px;
+      color: var(--color-ash);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .modal-confirmacion__acciones {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    /* Nombre del paciente en la fila */
+    .paciente-nombre { font-weight: 600; }
+    .paciente-dui { font-size: 12px; color: var(--color-fog); display: block; margin-top: 2px; }
+
+    /* Columna de acciones: stack de controles */
+    .acciones-celda {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-start;
+      min-width: 160px;
+    }
+
+    /* Métricas KPI */
+    .metricas__flex {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 32px 0 40px 0;
+    }
+
+    .kpi-destacado .stat-tarjeta__valor { color: var(--color-clinical-cyan); }
+    .kpi-alerta .stat-tarjeta__valor { color: #ffc425; }
+    .kpi-info .stat-tarjeta__valor { color: var(--color-lilac-mist); }
+  </style>
 </head>
 
 <body>
@@ -35,102 +333,105 @@
     </div>
   </header>
 
-  <main id="contenido">
+  <!-- LOADER: visible hasta confirmar rol 'coordinador' -->
+  <div id="panel-auth-loading" role="status" aria-live="polite">
+    <span class="rc-spinner" aria-hidden="true"></span>
+    <p style="color: var(--color-fog); font-size: 14px;">Verificando credenciales clínicas…</p>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL: oculto hasta validar rol -->
+  <main id="contenido" hidden>
     <section class="panel-hero">
       <div class="contenedor">
+
+        <!-- Encabezado del panel -->
         <div class="panel-hero__header">
           <div>
             <span class="panel-badge panel-badge--coordinador">● Portal de Coordinación Radiológica</span>
             <h1 id="saludo-coordinador">Panel Clínico de Control</h1>
-            <p id="info-coordinador">Gestión integral de citas médicas, estado de salas de ultrasonido y asignación de informes radiológicos.</p>
+            <p id="info-coordinador">Gestión integral de citas médicas, asignación de radiólogos e informes.</p>
           </div>
           <div>
             <a class="btn btn--primario" href="citas.html">+ Agendar cita médica</a>
           </div>
         </div>
 
-        <!-- Métricas del día -->
-        <div class="panel-grid-stats">
-          <div class="stat-tarjeta">
-            <span class="stat-tarjeta__valor" id="stat-citas-hoy">14</span>
+        <!-- ================================================================
+             KPIs EN TIEMPO REAL (.metricas__flex)
+             ================================================================ -->
+        <div class="metricas__flex" aria-label="Indicadores clínicos del día">
+          <!-- KPI 1: Citas para hoy -->
+          <div class="stat-tarjeta kpi-destacado">
+            <span class="stat-tarjeta__valor" id="kpi-citas-hoy">–</span>
             <span class="stat-tarjeta__etiqueta">Estudios programados hoy</span>
           </div>
-          <div class="stat-tarjeta">
-            <span class="stat-tarjeta__valor" id="stat-completados">9</span>
-            <span class="stat-tarjeta__etiqueta">Informes completados</span>
+          <!-- KPI 2: Pendientes de confirmación -->
+          <div class="stat-tarjeta kpi-alerta">
+            <span class="stat-tarjeta__valor" id="kpi-pendientes">–</span>
+            <span class="stat-tarjeta__etiqueta">Pendientes de confirmación</span>
           </div>
-          <div class="stat-tarjeta">
-            <span class="stat-tarjeta__valor" id="stat-pendientes">5</span>
-            <span class="stat-tarjeta__etiqueta">En sala / pendientes de firma</span>
+          <!-- KPI 3: Estudio / médico con mayor demanda -->
+          <div class="stat-tarjeta kpi-info">
+            <span class="stat-tarjeta__valor" id="kpi-top-valor" style="font-size:18px; line-height:1.3;">–</span>
+            <span class="stat-tarjeta__etiqueta" id="kpi-top-etiqueta">Mayor demanda</span>
           </div>
+          <!-- KPI 4: Total general -->
           <div class="stat-tarjeta">
-            <span class="stat-tarjeta__valor" id="stat-tiempo-promedio">22 min</span>
-            <span class="stat-tarjeta__etiqueta">Tiempo promedio de estudio</span>
+            <span class="stat-tarjeta__valor" id="kpi-total">–</span>
+            <span class="stat-tarjeta__etiqueta">Total de citas registradas</span>
           </div>
         </div>
 
-        <!-- Tabla de Agenda del Día -->
+        <!-- ================================================================
+             SECCIÓN: TABLA DE GESTIÓN DE CITAS
+             ================================================================ -->
         <div class="panel-seccion-card">
           <div class="panel-seccion-header">
             <h2>Agenda de Pacientes y Procedimientos</h2>
-            <span style="font-size: 13px; color: var(--color-fog);">Actualizado en tiempo real</span>
+            <span style="font-size: 13px; color: var(--color-fog);">Actualizado en tiempo real desde Firestore</span>
           </div>
 
-          <div class="panel-tabla-wrap">
-            <table class="panel-tabla">
-              <thead>
-                <tr>
-                  <th>Hora</th>
-                  <th>Paciente</th>
-                  <th>Estudio Radiológico</th>
-                  <th>Sala / Equipo</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="tabla-citas-cuerpo">
-                <tr>
-                  <td><strong>07:30 AM</strong></td>
-                  <td>Roberto Carlos Martínez</td>
-                  <td>Ultrasonido Abdominal Superior</td>
-                  <td>Sala Ecografía 1 (GE Logiq E10)</td>
-                  <td><span class="badge-estado badge-estado--completada">Completado</span></td>
-                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Ver Informe</a></td>
-                </tr>
-                <tr>
-                  <td><strong>08:15 AM</strong></td>
-                  <td>Elena Patricia Vásquez</td>
-                  <td>Doppler Venoso Miembros Inferiores</td>
-                  <td>Sala Vascular (Philips Epiq 7)</td>
-                  <td><span class="badge-estado badge-estado--completada">Completado</span></td>
-                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Ver Informe</a></td>
-                </tr>
-                <tr>
-                  <td><strong>09:00 AM</strong></td>
-                  <td>Carlos Ernesto Benítez</td>
-                  <td>Ultrasonido de Tiroides y Cuello</td>
-                  <td>Sala Ecografía 2</td>
-                  <td><span class="badge-estado badge-estado--confirmada">En Sala</span></td>
-                  <td><a href="#" class="btn btn--primario" style="padding: 6px 14px; font-size: 13px;">Capturar</a></td>
-                </tr>
-                <tr>
-                  <td><strong>10:00 AM</strong></td>
-                  <td>Lucía Marisol Hernández</td>
-                  <td>Eco Doppler Carotídeo y Vertebral</td>
-                  <td>Sala Vascular</td>
-                  <td><span class="badge-estado badge-estado--pendiente">Programada</span></td>
-                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Recepcionar</a></td>
-                </tr>
-                <tr>
-                  <td><strong>10:45 AM</strong></td>
-                  <td>Jorge Alberto Rivas</td>
-                  <td>Músculo-esquelético: Hombro</td>
-                  <td>Sala Ecografía 1</td>
-                  <td><span class="badge-estado badge-estado--pendiente">Programada</span></td>
-                  <td><a href="#" class="btn btn--fantasma" style="padding: 6px 14px; font-size: 13px;">Recepcionar</a></td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Controles: búsqueda + filtros -->
+          <div class="panel-controles" role="search" aria-label="Filtros de citas">
+
+            <!-- Barra de búsqueda reactiva -->
+            <div class="panel-controles__busqueda">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="search"
+                id="busqueda-citas"
+                class="panel-input"
+                placeholder="Buscar por nombre, apellidos o DUI…"
+                autocomplete="off"
+                aria-label="Buscar citas por nombre o DUI"
+              >
+            </div>
+
+            <!-- Filtro por Estado -->
+            <select id="filtro-estado" class="panel-select" aria-label="Filtrar por estado de cita">
+              <option value="">Todos los estados</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="completada">Completada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+
+            <!-- Filtro por Médico Radiólogo -->
+            <select id="filtro-radiologo" class="panel-select" aria-label="Filtrar por médico radiólogo">
+              <option value="">Todos los radiólogos</option>
+              <option value="sin-asignar">Sin asignar</option>
+              <option value="Dr. Gerardo Franco">Dr. Gerardo Franco</option>
+              <option value="Dra. Itzel Suazo Sorto">Dra. Itzel Suazo Sorto</option>
+              <option value="Dra. Susana Cruz">Dra. Susana Cruz</option>
+            </select>
+          </div>
+
+          <!-- Contenedor dinámico de la tabla -->
+          <div class="panel-tabla-wrap" id="tabla-citas-contenedor" aria-live="polite">
+            <!-- Renderizado dinámico por panel.page.js -->
           </div>
         </div>
 
@@ -138,15 +439,63 @@
     </section>
   </main>
 
+  <!-- ========================================================================
+       MODAL DE CONFIRMACIÓN DE ELIMINACIÓN (Anti-eliminación accidental)
+       ======================================================================== -->
+  <div
+    id="modal-eliminar"
+    class="modal-confirmacion oculto"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="modal-eliminar-titulo"
+    aria-describedby="modal-eliminar-texto"
+    hidden
+  >
+    <div class="modal-confirmacion__backdrop" id="modal-eliminar-backdrop"></div>
+    <div class="modal-confirmacion__caja">
+      <div class="modal-confirmacion__icono" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/>
+          <path d="M9 6V4h6v2"/>
+        </svg>
+      </div>
+      <h2 class="modal-confirmacion__titulo" id="modal-eliminar-titulo">¿Eliminar cita definitivamente?</h2>
+      <p class="modal-confirmacion__texto" id="modal-eliminar-texto">
+        Esta acción es <strong>irreversible</strong>. El registro será eliminado permanentemente
+        de la base de datos de Firestore. ¿Desea continuar?
+      </p>
+      <div class="modal-confirmacion__acciones">
+        <button
+          type="button"
+          id="btn-cancelar-eliminacion"
+          class="btn btn--fantasma"
+          style="padding: 10px 24px; font-size: 14px;"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="btn-confirmar-eliminacion"
+          class="btn btn--peligro"
+          style="padding: 10px 24px; font-size: 14px; border-radius: 9999px;"
+        >
+          Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="contenedor">
-      <p class="footer__legal">©2026 RadioCare - Panel Clínico de Coordinación</p>
+      <p class="footer__legal">©2026 RadioCare – Panel Clínico de Coordinación Radiológica</p>
     </div>
   </footer>
 
+  <!-- Módulos JS (ES Modules) -->
   <script type="module" src="js/pages/navbar.js"></script>
   <script type="module" src="js/pages/panel.page.js"></script>
 </body>
 
 </html>
-

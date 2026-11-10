@@ -1,0 +1,135 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // FUNCIONES HELPER DE AUTORIZACIÓN
+    // Encapsulan los checks de autenticación y rol para mantener las reglas
+    // legibles, reutilizables y libres de duplicación.
+    // =========================================================================
+
+    /** Verifica que el usuario realizó el request con una sesión válida de Firebase Auth. */
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    /**
+     * Verifica que el usuario autenticado tiene el rol 'coordinador' en su
+     * documento de Firestore (/usuarios/{uid}).
+     * Se usa get() para leer el documento en tiempo de evaluación.
+     */
+    function esCoordinador() {
+      return estaAutenticado() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'coordinador';
+    }
+
+    // =========================================================================
+    // COLECCIÓN: usuarios
+    // =========================================================================
+    match /usuarios/{userId} {
+
+      /**
+       * LECTURA:
+       *   - El propio usuario puede leer su documento (request.auth.uid == userId).
+       *   - El coordinador puede leer cualquier perfil de usuario.
+       */
+      allow read: if estaAutenticado() &&
+                     (request.auth.uid == userId || esCoordinador());
+
+      /**
+       * CREACIÓN:
+       *   - Solo el propio usuario puede crear su documento (uid coincide).
+       *   - El rol del documento nuevo debe ser siempre 'paciente';
+       *     se impide el auto-asignamiento de roles privilegiados.
+       */
+      allow create: if estaAutenticado() &&
+                       request.auth.uid == userId &&
+                       request.resource.data.rol == 'paciente';
+
+      /**
+       * ACTUALIZACIÓN:
+       *   - El propio usuario puede actualizarse solo si no cambia su rol
+       *     (el valor de rol permanece idéntico al rol almacenado).
+       *   - El coordinador puede actualizar cualquier perfil sin restricción de rol.
+       */
+      allow update: if estaAutenticado() && (
+                       (request.auth.uid == userId &&
+                        request.resource.data.rol == resource.data.rol) ||
+                       esCoordinador()
+                    );
+
+      /** ELIMINACIÓN: Solo el coordinador puede borrar perfiles. */
+      allow delete: if esCoordinador();
+    }
+
+    // =========================================================================
+    // COLECCIÓN: estudios
+    // =========================================================================
+    match /estudios/{estudioId} {
+
+      /**
+       * LECTURA pública: Cualquier visitante puede consultar el catálogo de
+       * estudios radiológicos (necesario para el formulario de agendamiento).
+       */
+      allow read: if true;
+
+      /**
+       * ESCRITURA restringida: Solo el coordinador puede crear, actualizar
+       * o eliminar estudios del catálogo clínico.
+       */
+      allow write: if esCoordinador();
+    }
+
+    // =========================================================================
+    // COLECCIÓN: citas
+    // =========================================================================
+    match /citas/{citaId} {
+
+      /**
+       * CREACIÓN (Paciente):
+       *   - El request debe estar autenticado.
+       *   - El campo 'usuarioId' del nuevo documento debe coincidir con el uid
+       *     del solicitante (evita crear citas a nombre de otros).
+       *   - La cita siempre debe nacer en estado 'pendiente'.
+       */
+      allow create: if estaAutenticado() &&
+                       request.resource.data.usuarioId == request.auth.uid &&
+                       request.resource.data.estado == 'pendiente';
+
+      /**
+       * LECTURA:
+       *   - El paciente solo puede leer sus propias citas (resource.data.usuarioId == uid).
+       *   - El coordinador puede leer cualquier cita.
+       */
+      allow read: if estaAutenticado() && (
+                     resource.data.usuarioId == request.auth.uid ||
+                     esCoordinador()
+                  );
+
+      /**
+       * ACTUALIZACIÓN:
+       *   - Paciente: Solo puede modificar su propia cita si aún está 'pendiente'
+       *     y el nuevo estado es 'pendiente' o 'cancelada' (auto-cancelación).
+       *   - Coordinador: Tiene permiso total de actualización sobre cualquier cita.
+       */
+      allow update: if estaAutenticado() && (
+                       (
+                         resource.data.usuarioId == request.auth.uid &&
+                         resource.data.estado == 'pendiente' &&
+                         (request.resource.data.estado == 'pendiente' ||
+                          request.resource.data.estado == 'cancelada')
+                       ) ||
+                       esCoordinador()
+                    );
+
+      /**
+       * ELIMINACIÓN:
+       *   - Solo el coordinador puede eliminar citas definitivamente (deleteDoc).
+       *   - El paciente no tiene permiso de eliminación física.
+       */
+      allow delete: if esCoordinador();
+    }
+
+  }
+}

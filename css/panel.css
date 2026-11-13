@@ -493,14 +493,6 @@
   font-weight: 500;
 }
 
-.modal-preparacion__footer {
-  padding: 16px 24px 24px 24px;
-  display: flex;
-  justify-content: flex-end;
-  border-top: 1px solid rgba(72, 70, 198, 0.25);
-  background: rgba(22, 22, 92, 0.4);
-}
-
 .modal-preparacion__btn-entendido {
   padding: 10px 28px;
   font-size: 14px;
@@ -770,11 +762,27 @@
   font-size: 13px;
 }
 
+/* =========================================================
+   FOOTERS DE MODALES (Agrupados por buenas prácticas)
+   ========================================================= */
+
+/* 1. Propiedades compartidas */
+.modal-preparacion__footer,
 .modal-ficha-paciente__footer {
-  padding: 14px 24px;
   display: flex;
   justify-content: flex-end;
   border-top: 1px solid rgba(72, 70, 198, 0.25);
+}
+
+/* 2. Propiedades específicas del modal de preparación */
+.modal-preparacion__footer {
+  padding: 16px 24px 24px 24px;
+  background: rgba(22, 22, 92, 0.4);
+}
+
+/* 3. Propiedades específicas de la ficha del paciente */
+.modal-ficha-paciente__footer {
+  padding: 14px 24px;
   background: rgba(22, 22, 92, 0.5);
   flex-shrink: 0;
 }
@@ -1155,5 +1163,135 @@
 .kpi-alerta .stat-tarjeta__valor { color: #ffc425; }
 .kpi-info .stat-tarjeta__valor { color: var(--color-lilac-mist); }
 
+/* =========================================
+   FOOTER ADMINISTRATIVO
+   ========================================= */
+.panel-footer {
+  background: var(--color-iris-glow);
+  padding-top: 16px;
+  padding-bottom: 12px;
+  margin-top: auto; /* Empuja el footer al fondo si hay poco contenido */
+}
 
+.panel-footer__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  border-bottom: 1px solid var(--color-iris-veil);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
 
+.badge-admin {
+  font-size: 12px;
+  background: var(--color-mint-vital);
+  color: var(--color-deep-iris);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.panel-footer__info p {
+  color: var(--color-pearl);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.panel-footer__enlaces {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--color-pearl);
+}
+
+.panel-footer__enlaces a:hover {
+  color: var(--color-cloud-white);
+  text-decoration: underline;
+}
+
+.panel-footer__legal {
+  font-size: 12px;
+  color: var(--color-ash);
+  text-align: center;
+}
+
+/* =========================================
+   DISEÑO RESPONSIVO DEL PANEL (Filtros y Tabla)
+   ========================================= */
+
+/* Contenedor de la barra de búsqueda y filtros */
+.panel-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.panel-filtros > * {
+  flex: 1 1 220px; /* Permite que los inputs/selects crezcan y se apilen */
+}
+
+/* Scroll horizontal seguro para la tabla de citas */
+.tabla-contenedor {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+  background: var(--color-iris-shadow);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 24px;
+  padding: 16px;
+  margin-bottom: 32px;
+}
+
+.tabla-citas {
+  width: 100%;
+  min-width: 900px; /* Fuerza el scroll si la pantalla es menor a 900px */
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tabla-citas th,
+.tabla-citas td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-iris-border);
+  color: var(--color-cloud-white);
+  font-size: 14px;
+}
+
+.tabla-citas th {
+  color: var(--color-fog);
+  font-weight: 600;
+}
+
+/* Ajustes para móviles */
+@media (max-width: 640px) {
+  .panel-footer__inner {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .panel-footer__enlaces {
+    justify-content: center;
+  }
+  
+  .tabla-contenedor {
+    border-radius: 16px;
+    padding: 8px;
+  }
+}
+
+/* Badge sólido para el paciente (idéntico estructuralmente al badge-admin) */
+.badge-paciente {
+  font-size: 11px;
+  background: var(--color-clinical-cyan);
+  color: var(--color-deep-iris);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: 6px;
+  font-weight: 600;
+}

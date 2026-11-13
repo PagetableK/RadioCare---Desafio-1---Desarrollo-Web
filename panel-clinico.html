@@ -7,6 +7,7 @@
   <title>Panel Clínico · Coordinación Radiológica | RadioCare</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/panel.css">
+  <link rel="icon" type="image/svg+xml" href="img/radiocare.svg">
 </head>
 
 <body>
@@ -15,10 +16,7 @@
   <header class="header">
     <div class="contenedor header__barra">
       <a class="logo" href="index.html" aria-label="RadioCare, ir al inicio">
-        <svg viewBox="0 0 32 32" fill="none" stroke="#b1a6f6" stroke-width="2" aria-hidden="true">
-          <circle cx="16" cy="16" r="13" />
-          <path d="M5 17h6l3-7 4 12 3-5h6" stroke="#00b1ff" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <img src="img/radiocare.svg" alt="" width="32" height="32" aria-hidden="true">
         Radio<span>Care</span>
       </a>
       <nav class="nav" aria-label="Navegación principal">
@@ -374,9 +372,23 @@
   </div>
 
   <footer class="footer">
-    <div class="contenedor">
-      <p class="footer__legal">©2026 RadioCare – Panel Clínico de Coordinación Radiológica</p>
+    <div class="contenedor panel-footer__inner">
+    <div class="panel-footer__info">
+      <div class="logo">
+        <!-- Puedes pegar aquí el SVG del isotipo -->
+        Radio<span>Care</span> <span class="badge-admin">Admin</span>
+      </div>
+      <p>Sistema de Gestión Radiológica y Triaje</p>
     </div>
+    <nav class="panel-footer__enlaces" aria-label="Enlaces de administración">
+      <a href="mailto:soporte@radiocare.sv">Soporte Técnico IT</a>
+      <a href="#">Manual del Coordinador</a>
+      <span>v1.0.0</span>
+    </nav>
+  </div>
+  <div class="contenedor">
+    <p class="panel-footer__legal">©2026 RadioCare – Uso exclusivo para personal clínico autorizado.</p>
+  </div>
   </footer>
 
   <!-- Módulos JS (ES Modules) -->

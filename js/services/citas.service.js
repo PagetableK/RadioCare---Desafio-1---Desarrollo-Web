@@ -91,7 +91,7 @@ export async function solicitarCita(datosCita) {
  * @returns {Promise<Array<object>>} Lista ordenada cronológicamente de citas del paciente.
  */
 export async function obtenerMisCitas(usuarioId) {
-  if (!usuarioId) return [];
+ if (!usuarioId) return [];
 
   const citas = [];
   try {
@@ -102,29 +102,9 @@ export async function obtenerMisCitas(usuarioId) {
     snapshot.forEach((docSnap) => {
       citas.push({ id: docSnap.id, ...docSnap.data() });
     });
-
-    // Fallback: Si no trajo resultados, verificar si existen registros antiguos con pacienteUid
-    if (citas.length === 0) {
-      const qFallback = query(citasRef, where('pacienteUid', '==', usuarioId));
-      const fallbackSnap = await getDocs(qFallback);
-      fallbackSnap.forEach((docSnap) => {
-        citas.push({ id: docSnap.id, ...docSnap.data() });
-      });
-    }
   } catch (error) {
-    console.warn("Aviso en consulta indexada de citas, ejecutando fallback en cliente:", error);
-    try {
-      const allSnap = await getDocs(collection(db, 'citas'));
-      allSnap.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.usuarioId === usuarioId || data.pacienteUid === usuarioId) {
-          citas.push({ id: docSnap.id, ...data });
-        }
-      });
-    } catch (fallbackError) {
-      console.error("Error definitivo al obtener citas del paciente:", fallbackError);
-      throw fallbackError;
-    }
+    console.error("Error al obtener citas del paciente:", error);
+    throw error;
   }
 
   // Ordenamiento cronológico: Citas más recientes / programadas primero

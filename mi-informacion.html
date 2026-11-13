@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/panel.css">
   <link rel="stylesheet" href="css/citas.css">
+  <link rel="icon" type="image/svg+xml" href="img/radiocare.svg">
 </head>
 
 <body>
@@ -16,10 +17,7 @@
   <header class="header">
     <div class="contenedor header__barra">
       <a class="logo" href="index.html" aria-label="RadioCare, ir al inicio">
-        <svg viewBox="0 0 32 32" fill="none" stroke="#b1a6f6" stroke-width="2" aria-hidden="true">
-          <circle cx="16" cy="16" r="13" />
-          <path d="M5 17h6l3-7 4 12 3-5h6" stroke="#00b1ff" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <img src="img/radiocare.svg" alt="" width="32" height="32" aria-hidden="true">
         Radio<span>Care</span>
       </a>
       <nav class="nav" aria-label="Navegación principal">
@@ -149,10 +147,24 @@
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="contenedor">
-      <p class="footer__legal">©2026 RadioCare - Expediente del Paciente</p>
+  <!-- FOOTER DEL PORTAL DE PACIENTES -->
+  <footer class="footer footer-paciente">
+    <div class="contenedor panel-footer__inner">
+    <div class="panel-footer__info">
+      <a class="logo" href="index.html" aria-label="RadioCare, ir al inicio">
+        <img src="img/radiocare.svg" alt="" width="32" height="32" aria-hidden="true">
+        Radio<span>Care</span>
+      </a>
+      <span class="badge-paciente">Portal del Paciente</span>
     </div>
+    <nav class="panel-footer__enlaces" aria-label="Enlaces de soporte al paciente">
+      <a href="mailto:soporte@radiocare.sv">Ayuda y Soporte</a>
+      <a href="#">Privacidad de Datos Clínicos</a>
+    </nav>
+  </div>
+  <div class="contenedor">
+    <p class="panel-footer__legal">©2026 RadioCare – Su expediente radiológico digital seguro.</p>
+  </div>
   </footer>
 
   <!-- SCRIPTS ES MODULES -->
@@ -161,4 +173,3 @@
 </body>
 
 </html>
-

@@ -1,4 +1,4 @@
-# RadioCare — Desafío 1 · Desarrollo Web con Firebase
+# RadioCare — Desafío 2 · Desarrollo Web con Firebase
 
 > **Centro de Diagnóstico Radiológico por Ultrasonido** — Sistema de agendamiento clínico en línea y consola administrativa para coordinadores.
 

@@ -20,6 +20,8 @@ import {
   cambiarEstadoCita,
   asignarRadiologo,
   eliminarCitaDefinitiva,
+  subirInformeCita,
+  obtenerInformePorCita,
   RADIOLOGOS_OFICIALES,
   ESTADOS_CITA
 } from "../services/citas.service.js";
@@ -53,11 +55,40 @@ const modalBackdrop       = document.getElementById('modal-eliminar-backdrop');
 const btnCancelarEliminar = document.getElementById('btn-cancelar-eliminacion');
 const btnConfirmarEliminar= document.getElementById('btn-confirmar-eliminacion');
 
+// Modal de ficha / expediente del paciente
+const modalFichaPaciente        = document.getElementById('modal-ficha-paciente');
+const modalFichaBackdrop        = document.getElementById('modal-ficha-backdrop');
+const btnCerrarModalFicha       = document.getElementById('btn-cerrar-modal-ficha');
+const btnCerrarModalFichaFooter = document.getElementById('btn-cerrar-modal-ficha-footer');
+
+// Campos del modal de ficha del paciente
+const fichaNombre        = document.getElementById('ficha-nombre');
+const fichaDui           = document.getElementById('ficha-dui');
+const fichaNacimiento    = document.getElementById('ficha-nacimiento');
+const fichaSexo          = document.getElementById('ficha-sexo');
+const fichaEmbarazo      = document.getElementById('ficha-embarazo');
+const fichaEmail         = document.getElementById('ficha-email');
+const fichaTelefono      = document.getElementById('ficha-telefono');
+const fichaMedicoOrdena  = document.getElementById('ficha-medico-ordena');
+const fichaModalidad     = document.getElementById('ficha-modalidad');
+const fichaOrdenMedica   = document.getElementById('ficha-orden-medica');
+const fichaImplantes     = document.getElementById('ficha-implantes');
+const fichaAlergia       = document.getElementById('ficha-alergia');
+const fichaRenal         = document.getElementById('ficha-renal');
+const fichaRecordatorio  = document.getElementById('ficha-recordatorio');
+const fichaNotas         = document.getElementById('ficha-notas');
+
+// Input selector de archivo para subida de informe diagnóstico (PDF / DICOM)
+const inputArchivoInforme = document.getElementById('input-archivo-informe');
+
 /* ==========================================================================
    ESTADO LOCAL EN MEMORIA
    ========================================================================== */
-let todasLasCitas    = [];   // Cache completo desde Firestore
-let citaIdPendiente  = null; // ID en espera de confirmación de eliminación
+let todasLasCitas       = [];   // Cache completo desde Firestore
+let citaIdPendiente     = null; // ID en espera de confirmación de eliminación
+let citaIdParaInforme   = null; // ID de cita para subida de informe diagnóstico
+let botonInformeActivo  = null; // Referencia al botón que disparó la subida
+let ultimoElementoFoco  = null; // Elemento activo para restaurar foco accesible
 
 /* ==========================================================================
    UTILIDADES DE FORMATEO
@@ -93,30 +124,86 @@ function obtenerFechaHoyLocal() {
 }
 
 /**
- * Extrae el nombre completo legible del paciente desde el documento de cita.
- * Acepta los posibles esquemas de almacenamiento: nombre plano, objeto contacto,
- * o pacienteNombre (campo alternativo).
+ * Normaliza de forma retrocompatible los campos del documento de cita,
+ * buscando en orden de prioridad para soportar esquemas antiguos y nuevos:
+ *   - Nombre completo: cita.pacienteNombreCompleto o ${nombres} ${apellidos}
+ *   - DUI: cita.paciente?.dui || cita.datosPaciente?.dui || cita.dui || 'No registrado'
+ *   - Destinatario: cita.tipoDestinatario === 'familiar'
+ *
  * @param {object} cita
- * @returns {string}
+ * @returns {{ nombreCompleto: string, dui: string, esFamiliar: boolean }}
  */
-function extraerNombrePaciente(cita) {
-  if (cita.pacienteNombre) return cita.pacienteNombre;
-  if (cita.contacto?.nombre && cita.contacto?.apellidos) {
-    return `${cita.contacto.nombre} ${cita.contacto.apellidos}`.trim();
+export function extraerDatosPaciente(cita) {
+  if (!cita) {
+    return {
+      nombreCompleto: 'Paciente sin nombre',
+      dui: 'No registrado',
+      esFamiliar: false
+    };
   }
-  if (cita.contacto?.nombre) return cita.contacto.nombre;
-  if (cita.nombre) return cita.nombre;
-  return 'Paciente sin nombre';
+
+  // 1. Nombre completo: orden de prioridad retrocompatible
+  let nombreCompleto = '';
+
+  if (cita.pacienteNombreCompleto && String(cita.pacienteNombreCompleto).trim()) {
+    nombreCompleto = String(cita.pacienteNombreCompleto).trim();
+  } else {
+    const nombres = (
+      cita.paciente?.nombres ||
+      cita.paciente?.nombre ||
+      cita.datosPaciente?.nombres ||
+      cita.datosPaciente?.nombre ||
+      cita.contacto?.nombre ||
+      cita.nombres ||
+      cita.nombre ||
+      ''
+    ).trim();
+
+    const apellidos = (
+      cita.paciente?.apellidos ||
+      cita.paciente?.apellido ||
+      cita.datosPaciente?.apellidos ||
+      cita.datosPaciente?.apellido ||
+      cita.contacto?.apellidos ||
+      cita.apellidos ||
+      cita.apellido ||
+      ''
+    ).trim();
+
+    nombreCompleto = `${nombres} ${apellidos}`.trim();
+  }
+
+  if (!nombreCompleto && cita.pacienteNombre) {
+    nombreCompleto = String(cita.pacienteNombre).trim();
+  }
+
+  if (!nombreCompleto) {
+    nombreCompleto = 'Paciente sin nombre';
+  }
+
+  // 2. DUI: orden de prioridad retrocompatible
+  let dui = (
+    cita.paciente?.dui ||
+    cita.datosPaciente?.dui ||
+    cita.dui ||
+    cita.contacto?.dui ||
+    ''
+  ).trim();
+
+  if (!dui) {
+    dui = 'No registrado';
+  }
+
+  // 3. Destinatario (Familiar vs Para mí)
+  const esFamiliar = cita.tipoDestinatario === 'familiar' || cita.destinatario === 'para-familiar';
+
+  return {
+    nombreCompleto,
+    dui,
+    esFamiliar
+  };
 }
 
-/**
- * Extrae el DUI del paciente desde el documento de cita.
- * @param {object} cita
- * @returns {string}
- */
-function extraerDUI(cita) {
-  return cita.contacto?.dui || cita.dui || '';
-}
 
 /**
  * Obtiene el nombre legible del estudio radiológico desde el documento de cita.
@@ -233,10 +320,17 @@ btnConfirmarEliminar?.addEventListener('click', async () => {
   }
 });
 
-// Cierre con Escape
+// Cierre con Escape para modales
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modalEliminar && !modalEliminar.classList.contains('oculto')) {
-    cerrarModalEliminar();
+  if (e.key === 'Escape') {
+    if (modalFichaPaciente && !modalFichaPaciente.classList.contains('oculto') && !modalFichaPaciente.hasAttribute('hidden')) {
+      cerrarModalFichaPaciente();
+      return;
+    }
+    if (modalEliminar && !modalEliminar.classList.contains('oculto') && !modalEliminar.hasAttribute('hidden')) {
+      cerrarModalEliminar();
+      return;
+    }
   }
 });
 
@@ -296,6 +390,352 @@ function calcularKPIs(citas) {
 }
 
 /* ==========================================================================
+   MODAL DE EXPEDIENTE / FICHA COMPLETA DEL PACIENTE
+   ========================================================================== */
+
+/**
+ * Retorna un valor formateado para la ficha o un fallback si está vacío.
+ * @param {*} val
+ * @param {string} fallback
+ * @returns {string}
+ */
+function formatearTextoFicha(val, fallback = 'No registrado') {
+  if (val === undefined || val === null) return fallback;
+  const str = String(val).trim();
+  return str.length > 0 ? str : fallback;
+}
+
+/**
+ * Abre el modal responsivo de expediente / ficha del paciente estructurado en 3 bloques.
+ * @param {object} cita
+ */
+function abrirModalFichaPaciente(cita) {
+  if (!modalFichaPaciente || !cita) return;
+
+  ultimoElementoFoco = document.activeElement;
+
+  const datosPac = extraerDatosPaciente(cita);
+
+  // ── BLOQUE 1: DATOS DE IDENTIFICACIÓN ─────────────────────────────────
+  if (fichaNombre) {
+    fichaNombre.textContent = datosPac.nombreCompleto;
+  }
+
+  if (fichaDui) {
+    fichaDui.textContent = datosPac.dui;
+  }
+
+  const nacimiento = cita.paciente?.nacimiento ||
+    cita.paciente?.fechaNacimiento ||
+    cita.datosPaciente?.nacimiento ||
+    cita.datosPaciente?.fechaNacimiento ||
+    cita.nacimiento ||
+    cita.fechaNacimiento ||
+    '';
+  if (fichaNacimiento) {
+    fichaNacimiento.textContent = formatearTextoFicha(nacimiento, 'No registrada');
+  }
+
+  const sexo = cita.paciente?.sexoBiologico ||
+    cita.paciente?.sexo ||
+    cita.datosPaciente?.sexoBiologico ||
+    cita.datosPaciente?.sexo ||
+    cita.sexoBiologico ||
+    cita.sexo ||
+    '';
+  if (fichaSexo) {
+    fichaSexo.textContent = formatearTextoFicha(sexo, 'No especificado');
+  }
+
+  const embarazo = cita.paciente?.embarazo ||
+    cita.datosPaciente?.embarazo ||
+    cita.embarazo ||
+    '';
+  let textoEmbarazo = 'No especificado';
+  if (sexo && String(sexo).toLowerCase() === 'masculino') {
+    textoEmbarazo = 'No aplica (Sexo masculino)';
+  } else if (embarazo === 'si') {
+    textoEmbarazo = 'Sí';
+  } else if (embarazo === 'no') {
+    textoEmbarazo = 'No';
+  } else if (embarazo === 'posible') {
+    textoEmbarazo = 'Posiblemente';
+  } else if (embarazo === 'na') {
+    textoEmbarazo = 'No aplica';
+  } else if (embarazo) {
+    textoEmbarazo = embarazo;
+  }
+  if (fichaEmbarazo) {
+    fichaEmbarazo.textContent = textoEmbarazo;
+  }
+
+  // ── BLOQUE 2: CONTACTO Y ORDEN MÉDICA ─────────────────────────────────
+  const email = cita.contacto?.email || cita.email || cita.pacienteEmail || '';
+  if (fichaEmail) {
+    fichaEmail.textContent = formatearTextoFicha(email, 'No registrado');
+  }
+
+  const telefono = cita.contacto?.telefono || cita.telefono || '';
+  if (fichaTelefono) {
+    fichaTelefono.textContent = formatearTextoFicha(telefono, 'No registrado');
+  }
+
+  const medicoOrdena = cita.clinica?.medicoOrdena ||
+    cita.clinica?.medicoQueOrdena ||
+    cita.clinica?.medicoTratante ||
+    cita.medicoOrdena ||
+    cita.medicoQueOrdena ||
+    cita.medicoTratante ||
+    cita.medicoSolicitante ||
+    '';
+  if (fichaMedicoOrdena) {
+    fichaMedicoOrdena.textContent = formatearTextoFicha(medicoOrdena, 'No especificado');
+  }
+
+  const modalidad = cita.estudio?.modalidad || cita.modalidad || '';
+  let textoModalidad = 'Agendar cita con fecha';
+  if (modalidad === 'cotizacion') {
+    textoModalidad = 'Solo solicitar cotización';
+  } else if (modalidad === 'cita') {
+    textoModalidad = 'Agendar cita con fecha';
+  } else if (modalidad) {
+    textoModalidad = modalidad;
+  }
+  if (fichaModalidad) {
+    fichaModalidad.textContent = textoModalidad;
+  }
+
+  const ordenMedica = cita.clinica?.ordenMedica ||
+    cita.clinica?.orden_medica ||
+    cita.ordenMedica ||
+    cita.orden_medica ||
+    '';
+  let textoOrdenMedica = 'No especificado';
+  if (ordenMedica === 'si') {
+    textoOrdenMedica = 'Sí, cuenta con orden médica escrita';
+  } else if (ordenMedica === 'no') {
+    textoOrdenMedica = 'No, requiere orientación clínica';
+  } else if (ordenMedica === 'cotizacion') {
+    textoOrdenMedica = 'Solo cotización, sin orden médica';
+  } else if (ordenMedica) {
+    textoOrdenMedica = ordenMedica;
+  }
+  if (fichaOrdenMedica) {
+    fichaOrdenMedica.textContent = textoOrdenMedica;
+  }
+
+  // ── BLOQUE 3: INFORMACIÓN CLÍNICA ADICIONAL ────────────────────────────
+  const implantes = cita.clinica?.implantes || cita.implantes || '';
+  const mapaImplantes = {
+    'no': 'No presenta implantes',
+    'marcapasos': 'Marcapasos o desfibrilador',
+    'protesis': 'Prótesis articular (cadera, rodilla)',
+    'clip': 'Clip cerebral o vascular',
+    'otro': 'Otro dispositivo metálico'
+  };
+  if (fichaImplantes) {
+    fichaImplantes.textContent = mapaImplantes[implantes] || (implantes ? implantes : 'No registrado');
+  }
+
+  const alergia = cita.clinica?.alergia || cita.alergia || '';
+  const mapaAlergia = {
+    'no': 'No presenta alergias conocidas',
+    'si': 'Sí, alergia a medios de contraste (yodo / gadolinio)',
+    'desconoce': 'No lo sabe / Desconoce'
+  };
+  if (fichaAlergia) {
+    fichaAlergia.textContent = mapaAlergia[alergia] || (alergia ? alergia : 'No registrada');
+  }
+
+  const renal = cita.clinica?.renal || cita.renal || '';
+  const mapaRenal = {
+    'no': 'No',
+    'si': 'Sí, presenta antecedente de ERC'
+  };
+  if (fichaRenal) {
+    fichaRenal.textContent = mapaRenal[renal] || (renal ? renal : 'No registrada');
+  }
+
+  const recordatorio = cita.clinica?.recordatorioWhatsApp !== undefined
+    ? cita.clinica.recordatorioWhatsApp
+    : (cita.recordatorio !== undefined ? cita.recordatorio : null);
+  let textoRecordatorio = 'No especificado';
+  if (recordatorio === true) {
+    textoRecordatorio = 'Sí, solicitado por WhatsApp (24h antes)';
+  } else if (recordatorio === false) {
+    textoRecordatorio = 'No solicitado';
+  }
+  if (fichaRecordatorio) {
+    fichaRecordatorio.textContent = textoRecordatorio;
+  }
+
+  const notas = (cita.clinica?.notas || cita.notas || '').trim();
+  if (fichaNotas) {
+    fichaNotas.textContent = notas.length > 0 ? notas : 'Sin notas ni indicaciones adicionales.';
+  }
+
+  // Revelar modal accesible
+  modalFichaPaciente.classList.remove('oculto');
+  modalFichaPaciente.removeAttribute('hidden');
+  modalFichaPaciente.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+
+  setTimeout(() => {
+    btnCerrarModalFicha?.focus();
+  }, 50);
+}
+
+/**
+ * Cierra el modal de expediente / ficha del paciente y restaura el foco accesible.
+ */
+function cerrarModalFichaPaciente() {
+  if (!modalFichaPaciente) return;
+  modalFichaPaciente.classList.add('oculto');
+  modalFichaPaciente.setAttribute('hidden', 'true');
+  modalFichaPaciente.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+
+  if (ultimoElementoFoco && typeof ultimoElementoFoco.focus === 'function') {
+    ultimoElementoFoco.focus();
+  }
+}
+
+// Event listeners de cierre para el modal de ficha del paciente
+btnCerrarModalFicha?.addEventListener('click', cerrarModalFichaPaciente);
+btnCerrarModalFichaFooter?.addEventListener('click', cerrarModalFichaPaciente);
+modalFichaBackdrop?.addEventListener('click', cerrarModalFichaPaciente);
+modalFichaPaciente?.addEventListener('click', (e) => {
+  if (e.target === modalFichaPaciente) {
+    cerrarModalFichaPaciente();
+  }
+});
+
+/* ==========================================================================
+   GESTIÓN DE INFORMES DIAGNÓSTICOS (PDF & DICOM - PLAN SPARK BASE64)
+   ========================================================================== */
+
+/**
+ * Convierte un Data URL (o cadena Base64 pura) a un objeto Blob nativo.
+ * Evita bloqueos de seguridad del navegador al abrir o descargar blobs.
+ * @param {string} dataUrl
+ * @param {string} [mimeFallback='application/pdf']
+ * @returns {Blob}
+ */
+function dataUrlABlob(dataUrl, mimeFallback = 'application/pdf') {
+  if (!dataUrl) {
+    throw new Error('No se encontraron datos del archivo para convertir a Blob.');
+  }
+
+  let mime = mimeFallback;
+  let base64String = dataUrl;
+
+  if (dataUrl.startsWith('data:')) {
+    const partes = dataUrl.split(',');
+    const encabezado = partes[0];
+    base64String = partes[1] || '';
+    const matchMime = encabezado.match(/:(.*?);/);
+    if (matchMime && matchMime[1]) {
+      mime = matchMime[1];
+    }
+  }
+
+  const sliceSize = 1024;
+  const byteCharacters = atob(base64String);
+  const byteArrays = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    byteArrays.push(new Uint8Array(byteNumbers));
+  }
+
+  return new Blob(byteArrays, { type: mime });
+}
+
+/**
+ * Procesa la selección de archivo para subir informe diagnóstico a Firestore.
+ * Valida tamaño máximo de 700 KB (límite Spark) y convierte a Data URL.
+ */
+inputArchivoInforme?.addEventListener('change', async (e) => {
+  const archivo = e.target.files?.[0];
+  if (!archivo || !citaIdParaInforme) {
+    if (inputArchivoInforme) inputArchivoInforme.value = '';
+    return;
+  }
+
+  const citaId = citaIdParaInforme;
+  const boton = botonInformeActivo;
+
+  // Límite de tamaño: 700 KB (716,800 bytes)
+  const LIMITE_BYTES = 700 * 1024;
+  if (archivo.size > LIMITE_BYTES) {
+    const tamanoKb = (archivo.size / 1024).toFixed(1);
+    mostrarToast(
+      `El archivo "${archivo.name}" (${tamanoKb} KB) supera el límite máximo permitido de 700 KB para el plan gratuito de Firestore. Por favor elija un archivo más ligero.`,
+      'error',
+      5500
+    );
+    inputArchivoInforme.value = '';
+    return;
+  }
+
+  // Estado de carga en el botón
+  const contenidoOriginal = boton ? boton.innerHTML : '';
+  if (boton) {
+    boton.disabled = true;
+    boton.innerHTML = `
+      <span class="rc-spinner" style="width: 12px; height: 12px; border-width: 2px; vertical-align: middle; display: inline-block;" aria-hidden="true"></span>
+      Subiendo...
+    `;
+  }
+
+  try {
+    // Conversión asíncrona a Data URL (Base64)
+    const dataBase64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Error al leer el archivo en el navegador."));
+      reader.readAsDataURL(archivo);
+    });
+
+    const subidoPor = auth.currentUser?.email || auth.currentUser?.uid || 'Coordinador';
+
+    await subirInformeCita(citaId, {
+      nombreArchivo: archivo.name,
+      tipoArchivo: archivo.type || 'application/pdf',
+      dataBase64,
+      subidoPor
+    });
+
+    // Actualizar caché en memoria
+    const idx = todasLasCitas.findIndex(c => c.id === citaId);
+    if (idx !== -1) {
+      todasLasCitas[idx].tieneInforme = true;
+      todasLasCitas[idx].nombreInforme = archivo.name;
+    }
+
+    mostrarToast(`Informe "${archivo.name}" subido exitosamente.`, 'exito');
+
+    // Actualizar la fila inmediatamente sin recargar la página
+    aplicarFiltrosYRenderizar();
+  } catch (error) {
+    console.error("Error al subir el informe diagnóstico:", error);
+    mostrarToast(error.message || 'Error al guardar el informe en Firestore.', 'error');
+    if (boton) {
+      boton.disabled = false;
+      boton.innerHTML = contenidoOriginal;
+    }
+  } finally {
+    inputArchivoInforme.value = '';
+    citaIdParaInforme = null;
+    botonInformeActivo = null;
+  }
+});
+
+/* ==========================================================================
    FILTRADO, BÚSQUEDA Y ORDENAMIENTO EN MEMORIA
    ========================================================================== */
 
@@ -310,12 +750,14 @@ function aplicarFiltrosYRenderizar() {
 
   let citasFiltradas = [...todasLasCitas];
 
-  // 1. Búsqueda reactiva por nombre/apellidos del paciente o DUI
+  // 1. Búsqueda reactiva por nombre/apellidos del paciente o DUI normalizados con extraerDatosPaciente
   if (textoBusqueda) {
     citasFiltradas = citasFiltradas.filter(cita => {
-      const nombre = extraerNombrePaciente(cita).toLowerCase();
-      const dui    = extraerDUI(cita).toLowerCase();
-      return nombre.includes(textoBusqueda) || dui.includes(textoBusqueda);
+      const { nombreCompleto, dui } = extraerDatosPaciente(cita);
+      const nombreMin = nombreCompleto.toLowerCase();
+      const duiMin = dui.toLowerCase();
+      const coincideDui = dui !== 'No registrado' && duiMin.includes(textoBusqueda);
+      return nombreMin.includes(textoBusqueda) || coincideDui;
     });
   }
 
@@ -473,19 +915,106 @@ function generarSelectRadiologo(cita) {
 }
 
 /**
- * Renderiza la tabla completa de citas con controles de acción por fila.
+ * Renderiza la tabla completa de citas con controles de acción por fila,
+ * columna de expediente con botón circular de información y columna de subida de informes diagnósticos.
  * @param {Array<object>} citas
  */
 function renderizarTablaCitas(citas) {
   if (!tablaContenedor) return;
 
   const filasHtml = citas.map(cita => {
-    const nombre     = extraerNombrePaciente(cita);
-    const dui        = extraerDUI(cita);
+    const { nombreCompleto, dui } = extraerDatosPaciente(cita);
     const estudio    = extraerEstudio(cita);
     const fecha      = extraerFecha(cita) || '–';
     const horario    = HORARIOS_MAP[extraerHorario(cita)] || extraerHorario(cita) || '–';
     const medico     = cita.medicoAsignado || '<span style="color:var(--color-fog);">Sin asignar</span>';
+    const estadoNorm = (cita.estado || 'pendiente').toLowerCase();
+
+    // 1. Columna PACIENTE: Nombre, DUI y botón circular de ficha clínica (sin badge ni texto de Para mí o Familiar)
+    const pacienteHtml = `
+      <div class="paciente-celda-wrap">
+        <div class="paciente-info-col">
+          <div class="paciente-nombre-linea">
+            <span class="paciente-nombre">${nombreCompleto}</span>
+          </div>
+          ${dui && dui !== 'No registrado' ? `<span class="paciente-dui">DUI: ${dui}</span>` : ''}
+        </div>
+        <button
+          type="button"
+          class="btn-info-paciente"
+          data-id="${cita.id}"
+          title="Ver ficha completa del paciente"
+          aria-label="Ver ficha completa de ${nombreCompleto}"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </button>
+      </div>
+    `;
+
+    // 2. Columna INFORME / ARCHIVOS (PDF & DICOM)
+    let celdaInformeHtml = '';
+    if (estadoNorm !== 'completada') {
+      celdaInformeHtml = `<span class="texto-disponible-completar">Disponible al completar</span>`;
+    } else {
+      if (cita.tieneInforme) {
+        const nombreArchivo = cita.nombreInforme || 'Informe adjunto';
+        celdaInformeHtml = `
+          <div class="informe-col-wrap">
+            <div class="informe-botones-wrap">
+              <button
+                type="button"
+                class="btn-subir-informe btn-informe-actualizar"
+                data-id="${cita.id}"
+                title="Actualizar informe clínico (PDF o DICOM)"
+                aria-label="Actualizar informe clínico de ${nombreCompleto}"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Actualizar informe
+              </button>
+              <button
+                type="button"
+                class="btn-ver-informe"
+                data-id="${cita.id}"
+                title="Ver o descargar informe clínico"
+                aria-label="Ver informe clínico de ${nombreCompleto}"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                Ver informe
+              </button>
+            </div>
+            <span class="informe-nombre-archivo" title="${nombreArchivo}">
+              📄 ${nombreArchivo}
+            </span>
+          </div>
+        `;
+      } else {
+        celdaInformeHtml = `
+          <button
+            type="button"
+            class="btn-subir-informe btn-informe-nuevo"
+            data-id="${cita.id}"
+            title="Subir informe PDF o imagen DICOM"
+            aria-label="Subir PDF o DICOM para ${nombreCompleto}"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Subir PDF & DICOM
+          </button>
+        `;
+      }
+    }
 
     return `
       <tr>
@@ -493,10 +1022,7 @@ function renderizarTablaCitas(citas) {
           <strong>${fecha}</strong>
           ${horario !== '–' ? `<br><span style="font-size:12px;color:var(--color-fog);">${horario}</span>` : ''}
         </td>
-        <td>
-          <span class="paciente-nombre">${nombre}</span>
-          ${dui ? `<span class="paciente-dui">DUI: ${dui}</span>` : ''}
-        </td>
+        <td>${pacienteHtml}</td>
         <td>${estudio}</td>
         <td>${medico}</td>
         <td>${generarBadgeEstado(cita.estado)}</td>
@@ -506,12 +1032,13 @@ function renderizarTablaCitas(citas) {
             ${generarSelectRadiologo(cita)}
           </div>
         </td>
+        <td>${celdaInformeHtml}</td>
         <td style="text-align:center;">
           <button
             type="button"
             class="btn-eliminar-cita"
             data-id="${cita.id}"
-            aria-label="Eliminar cita de ${nombre}"
+            aria-label="Eliminar cita de ${nombreCompleto}"
             title="Eliminar cita definitivamente"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -528,16 +1055,17 @@ function renderizarTablaCitas(citas) {
   }).join('');
 
   tablaContenedor.innerHTML = `
-    <table class="panel-tabla" aria-label="Lista de citas clínicas">
+    <table class="panel-tabla" aria-label="Agenda de Pacientes y Procedimientos">
       <thead>
         <tr>
           <th>Fecha / Franja</th>
-          <th>Paciente</th>
+          <th>PACIENTE</th>
           <th>Estudio Radiológico</th>
           <th>Médico Radiólogo</th>
           <th>Estado</th>
-          <th>Acciones Rápidas</th>
-          <th style="text-align:center;">Eliminar</th>
+          <th>ACCIONES RÁPIDAS</th>
+          <th>INFORME / ARCHIVOS</th>
+          <th style="text-align:center;">ELIMINAR</th>
         </tr>
       </thead>
       <tbody>
@@ -548,12 +1076,12 @@ function renderizarTablaCitas(citas) {
 }
 
 /* ==========================================================================
-   DELEGACIÓN DE EVENTOS EN LA TABLA (Acciones rápidas)
+   DELEGACIÓN DE EVENTOS EN LA TABLA (Acciones rápidas, Ficha y Subida)
    ========================================================================== */
 
 /**
- * Listener único delegado sobre el contenedor de la tabla.
- * Maneja cambio de estado, asignación de radiólogo y eliminación.
+ * Listener de cambio delegado sobre el contenedor de la tabla.
+ * Maneja cambio de estado y asignación de radiólogo.
  */
 tablaContenedor?.addEventListener('change', async (e) => {
   const target = e.target;
@@ -573,6 +1101,7 @@ tablaContenedor?.addEventListener('change', async (e) => {
       if (idx !== -1) todasLasCitas[idx].estado = nuevoEstado;
 
       calcularKPIs(todasLasCitas);
+      // Al cambiar a 'completada', aplicarFiltrosYRenderizar() habilita el botón de informe de inmediato
       aplicarFiltrosYRenderizar();
       mostrarToast(`Estado actualizado a "${nuevoEstado}" correctamente.`, 'exito');
     } catch (err) {
@@ -617,12 +1146,102 @@ tablaContenedor?.addEventListener('change', async (e) => {
   }
 });
 
-// Botones de eliminación (delegados sobre click)
-tablaContenedor?.addEventListener('click', (e) => {
+// Listener delegado de clics en la tabla: ficha clínica, subida de informe, visualización y eliminación
+tablaContenedor?.addEventListener('click', async (e) => {
+  // 1. Ver ficha completa del paciente
+  const btnInfo = e.target.closest('.btn-info-paciente');
+  if (btnInfo) {
+    const citaId = btnInfo.dataset.id;
+    const cita = todasLasCitas.find(c => c.id === citaId);
+    if (cita) {
+      abrirModalFichaPaciente(cita);
+    }
+    return;
+  }
+
+  // 2. Subir o actualizar informe diagnóstico (PDF / DICOM)
+  const btnSubir = e.target.closest('.btn-subir-informe');
+  if (btnSubir) {
+    const citaId = btnSubir.dataset.id;
+    if (citaId && inputArchivoInforme) {
+      citaIdParaInforme = citaId;
+      botonInformeActivo = btnSubir;
+      inputArchivoInforme.click();
+    }
+    return;
+  }
+
+  // 3. Ver o descargar informe diagnóstico (Blob URL nativa)
+  const btnVer = e.target.closest('.btn-ver-informe');
+  if (btnVer) {
+    const citaId = btnVer.dataset.id;
+    if (!citaId) return;
+
+    const contenidoOriginal = btnVer.innerHTML;
+    btnVer.disabled = true;
+    btnVer.innerHTML = `
+      <span class="rc-spinner" style="width: 12px; height: 12px; border-width: 2px; vertical-align: middle; display: inline-block;" aria-hidden="true"></span>
+      Abriendo...
+    `;
+
+    try {
+      const informe = await obtenerInformePorCita(citaId);
+      if (!informe || !informe.dataBase64) {
+        throw new Error('No se encontró el archivo del informe diagnóstico en Firestore.');
+      }
+
+      const nombreArchivo = informe.nombreArchivo || `Informe_${citaId}.pdf`;
+      const tipoArchivo = informe.tipoArchivo || 'application/pdf';
+      const blob = dataUrlABlob(informe.dataBase64, tipoArchivo);
+      const blobUrl = URL.createObjectURL(blob);
+
+      const extension = (nombreArchivo.split('.').pop() || '').toLowerCase();
+      const extensionesPrevisualizables = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+      const esPrevisualizable = extensionesPrevisualizables.includes(extension) ||
+        tipoArchivo.includes('pdf') ||
+        tipoArchivo.startsWith('image/');
+
+      if (esPrevisualizable) {
+        const nuevaVentana = window.open(blobUrl, '_blank');
+        // Si el navegador bloqueó la ventana emergente, forzar descarga como alternativa segura
+        if (!nuevaVentana) {
+          const enlace = document.createElement('a');
+          enlace.href = blobUrl;
+          enlace.download = nombreArchivo;
+          document.body.appendChild(enlace);
+          enlace.click();
+          enlace.remove();
+        }
+      } else {
+        // Formato clínico no previsualizable directamente por el navegador (como .dcm)
+        const enlace = document.createElement('a');
+        enlace.href = blobUrl;
+        enlace.download = nombreArchivo;
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+      }
+
+      // Revocar URL temporal después de 1 minuto para liberar memoria
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 60000);
+    } catch (err) {
+      console.error('Error al abrir el informe diagnóstico:', err);
+      mostrarToast(err.message || 'Error al abrir el informe diagnóstico.', 'error');
+    } finally {
+      btnVer.disabled = false;
+      btnVer.innerHTML = contenidoOriginal;
+    }
+    return;
+  }
+
+  // 4. Eliminar cita (modal de confirmación)
   const btnEliminar = e.target.closest('.btn-eliminar-cita');
   if (btnEliminar) {
     const citaId = btnEliminar.dataset.id;
     if (citaId) abrirModalEliminar(citaId);
+    return;
   }
 });
 
@@ -645,6 +1264,27 @@ async function cargarTodasLasCitas() {
   renderizarEstadoCarga();
   try {
     todasLasCitas = await obtenerTodasLasCitas();
+
+    // Sincronizar estado de informe para citas completadas donde no esté definido directamente en el documento
+    await Promise.all(
+      todasLasCitas.map(async (c) => {
+        const est = (c.estado || '').toLowerCase();
+        if (est === 'completada' && c.tieneInforme === undefined) {
+          try {
+            const inf = await obtenerInformePorCita(c.id);
+            if (inf && inf.dataBase64) {
+              c.tieneInforme = true;
+              c.nombreInforme = inf.nombreArchivo;
+            } else {
+              c.tieneInforme = false;
+            }
+          } catch (_) {
+            c.tieneInforme = false;
+          }
+        }
+      })
+    );
+
     calcularKPIs(todasLasCitas);
     aplicarFiltrosYRenderizar();
   } catch (error) {

@@ -14,7 +14,6 @@ import {
   campoNoVacio, 
   validarEmail, 
   validarTelefono, 
-  validarDUI, 
   validarFechaNacimiento,
   formatearDUI 
 } from "../utils/validators.js";
@@ -796,8 +795,10 @@ if (citasForm) {
     }
 
     const destinatario = radioParaMi?.checked ? 'para-mi' : 'para-familiar';
+    const tipoDestinatario = radioParaMi?.checked ? 'personal' : 'familiar';
     const nombre = nombreInput?.value.trim() || '';
     const apellidos = apellidosInput?.value.trim() || '';
+    const pacienteNombreCompleto = `${nombre} ${apellidos}`.trim();
     const inputDui = duiInput || document.getElementById('dui');
     const dui = inputDui ? inputDui.value.trim() : '';
     const nacimiento = nacimientoInput?.value || '';
@@ -982,12 +983,14 @@ if (citasForm) {
     setBotonCargando(btnSubmit, true, 'Procesando solicitud...');
 
     try {
-      // Documento con usuarioId en la raíz
+      // Documento con usuarioId, tipoDestinatario y pacienteNombreCompleto en la raíz
       const datosCita = {
         usuarioId: usuarioAuthActual.uid,
         pacienteUid: usuarioAuthActual.uid,
         pacienteEmail: usuarioAuthActual.email,
         destinatario,
+        tipoDestinatario,
+        pacienteNombreCompleto,
         paciente: {
           nombre,
           apellidos,

@@ -1,6 +1,6 @@
 /**
- * RadioCare - Utilidades de Validación
- * Validaciones en cliente para formularios de autenticación y citas médicas.
+ * RadioCare - Utilidades de Validación (validators.js)
+ * Funciones puras de validación para formularios clínicos y autenticación.
  */
 
 /**
@@ -45,7 +45,7 @@ export function campoNoVacio(valor) {
 }
 
 /**
- * Valida formato de DUI salvadoreño (8 dígitos, guion y 1 dígito verificador: 00000000-0).
+ * Valida formato de DUI salvadoreño (8 dígitos numéricos, guion y 1 dígito verificador: ^\d{8}-\d{1}$).
  * @param {string} dui
  * @returns {boolean}
  */
@@ -56,8 +56,18 @@ export function validarDUI(dui) {
 }
 
 /**
+ * Valida formato de teléfono salvadoreño (8 dígitos numéricos separados por guion: ^\d{4}-\d{4}$).
+ * @param {string} tel
+ * @returns {boolean}
+ */
+export function validarTelefono(tel) {
+  if (!tel || typeof tel !== 'string') return false;
+  const regex = /^\d{4}-\d{4}$/;
+  return regex.test(tel.trim());
+}
+
+/**
  * Aplica máscara de DUI salvadoreño (00000000-0) limitando a un máximo de 9 dígitos numéricos.
- * Inserta automáticamente el guion antes del último dígito si la longitud numérica supera los 8 caracteres.
  * @param {string} valor
  * @returns {string}
  */
@@ -74,31 +84,98 @@ export function formatearDUI(valor) {
 }
 
 /**
- * Valida que la fecha de cita médica sea estrictamente posterior a la fecha actual (hoy),
- * cumpliendo con la regla clínica de al menos 24 horas de anticipación.
- * @param {string} fecha - Cadena en formato YYYY-MM-DD
+ * Verifica que una fecha de cita médica cumpla con todas las reglas clínicas de negocio:
+ * 1. No sea una fecha en el pasado.
+ * 2. No sea el mismo día en curso (requiere al menos 24 horas de antelación).
+ * 3. No sea domingo (día 0 de la semana, clínica cerrada).
+ * @param {string} fechaStr - Cadena en formato YYYY-MM-DD
  * @returns {boolean}
  */
-export function validarFechaCitaAnticipada(fecha) {
-  if (!fecha || typeof fecha !== 'string') return false;
-  const hoyStr = new Date().toISOString().split('T')[0];
-  return fecha > hoyStr;
+export function validarFechaCita(fechaStr) {
+  if (!fechaStr || typeof fechaStr !== 'string') return false;
+
+  const partes = fechaStr.trim().split('-');
+  if (partes.length !== 3) return false;
+
+  const anio = parseInt(partes[0], 10);
+  const mes = parseInt(partes[1], 10);
+  const dia = parseInt(partes[2], 10);
+
+  if (isNaN(anio) || isNaN(mes) || isNaN(dia)) return false;
+
+  // Instanciar en hora local para evitar discrepancias por zona horaria UTC
+  const fechaObj = new Date(anio, mes - 1, dia);
+  if (
+    fechaObj.getFullYear() !== anio ||
+    fechaObj.getMonth() !== mes - 1 ||
+    fechaObj.getDate() !== dia
+  ) {
+    return false; // Fecha calendario inválida
+  }
+
+  // Fecha actual a las 00:00:00 local
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  fechaObj.setHours(0, 0, 0, 0);
+
+  // 1 y 2: No debe ser fecha pasada ni el mismo día en curso
+  if (fechaObj.getTime() <= hoy.getTime()) {
+    return false;
+  }
+
+  // 3: No debe ser domingo (getDay() === 0)
+  if (fechaObj.getDay() === 0) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
- * Valida formato de teléfono salvadoreño (8 dígitos numéricos separados por guion: 0000-0000).
- * Comprueba mediante expresión regular estricta ^\d{4}-\d{4}$
- * @param {string} tel
+ * Valida la franja horaria según el día de la semana:
+ * Si la fecha es sábado (día 6), valida que la franja pertenezca exclusivamente a turnos matutinos
+ * (entre 6:30 a. m. y 12:00 p. m.: 'manana-temprana' o 'manana').
+ * En días de semana regulares (lunes a viernes), acepta cualquier franja horaria habilitada.
+ * @param {string} fechaStr - Cadena de fecha en formato YYYY-MM-DD
+ * @param {string} franjaHoraria - Clave de la franja horaria seleccionada
  * @returns {boolean}
  */
-export function validarTelefono(tel) {
-  if (!tel || typeof tel !== 'string') return false;
-  const regex = /^\d{4}-\d{4}$/;
-  return regex.test(tel.trim());
+export function validarHorarioSabado(fechaStr, franjaHoraria) {
+  if (!fechaStr || !franjaHoraria || typeof fechaStr !== 'string' || typeof franjaHoraria !== 'string') {
+    return false;
+  }
+
+  const partes = fechaStr.trim().split('-');
+  if (partes.length !== 3) return false;
+
+  const anio = parseInt(partes[0], 10);
+  const mes = parseInt(partes[1], 10);
+  const dia = parseInt(partes[2], 10);
+
+  if (isNaN(anio) || isNaN(mes) || isNaN(dia)) return false;
+
+  const fechaObj = new Date(anio, mes - 1, dia);
+  if (isNaN(fechaObj.getTime())) return false;
+
+  const franja = franjaHoraria.trim();
+  const franjasMatutinas = ['manana-temprana', 'manana'];
+  const esMatutina = franjasMatutinas.includes(franja) || 
+                     franja.includes('6:30') || 
+                     franja.includes('9:00');
+
+  // Si es sábado (día 6), solo se permiten turnos matutinos
+  if (fechaObj.getDay() === 6) {
+    return esMatutina;
+  }
+
+  // En lunes a viernes (1 a 5), se permiten todas las franjas hábiles del centro
+  const franjasHabiles = ['manana-temprana', 'manana', 'mediodia', 'tarde'];
+  return franjasHabiles.includes(franja) || esMatutina || franja.includes('12:00') || franja.includes('2:00');
 }
 
+
 /**
- * Comprueba que la fecha sea válida, que no esté en el futuro y que corresponda a una edad coherente (menor a 125 años).
+ * Comprueba que la fecha sea válida, no esté en el futuro y corresponda a una edad coherente (< 125 años).
  * @param {string} fecha - Cadena de fecha en formato YYYY-MM-DD
  * @returns {boolean}
  */
@@ -114,7 +191,6 @@ export function validarFechaNacimiento(fecha) {
 
   if (isNaN(anio) || isNaN(mes) || isNaN(dia)) return false;
 
-  // Comprobar validez real en el calendario (evita ej. 31 de febrero)
   const fechaObj = new Date(anio, mes - 1, dia);
   if (
     fechaObj.getFullYear() !== anio ||
@@ -128,12 +204,10 @@ export function validarFechaNacimiento(fecha) {
   hoy.setHours(0, 0, 0, 0);
   fechaObj.setHours(0, 0, 0, 0);
 
-  // No debe ser una fecha en el futuro
   if (fechaObj > hoy) {
     return false;
   }
 
-  // Edad menor a 125 años
   let edad = hoy.getFullYear() - anio;
   const mesDiff = hoy.getMonth() - (mes - 1);
   if (mesDiff < 0 || (mesDiff === 0 && hoy.getDate() < dia)) {
@@ -146,4 +220,3 @@ export function validarFechaNacimiento(fecha) {
 
   return true;
 }
-

@@ -131,5 +131,29 @@ service cloud.firestore {
       allow delete: if esCoordinador();
     }
 
+    // =========================================================================
+    // COLECCIÓN: informes
+    // Plan Spark de Firestore: Informes médicos (PDF / DICOM) en Base64 Data URLs
+    // =========================================================================
+    match /informes/{citaId} {
+
+      /**
+       * LECTURA:
+       *   - El coordinador puede consultar cualquier informe diagnóstico.
+       *   - El paciente titular o familiar solicitante puede consultar el informe
+       *     de su propia cita médica (cruzando con el campo 'usuarioId' de la cita).
+       */
+      allow read: if estaAutenticado() && (
+                     esCoordinador() ||
+                     get(/databases/$(database)/documents/citas/$(citaId)).data.usuarioId == request.auth.uid
+                  );
+
+      /**
+       * ESCRITURA (Creación, actualización y eliminación):
+       *   - Exclusivo del coordinador clínico debidamente autenticado (subida de PDF/DICOM).
+       */
+      allow write: if esCoordinador();
+    }
+
   }
 }

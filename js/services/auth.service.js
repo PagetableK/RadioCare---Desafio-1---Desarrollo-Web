@@ -21,8 +21,52 @@ import {
 // Re-exportar auth y db por si algún módulo los requiere desde aquí
 export { auth, db };
 
+// Clave estandarizada para el objeto de sesión y perfil clínico en localStorage
+export const USER_CACHE_KEY = 'rc_user_cache';
+
 // Estado de usuario en caché en memoria para revalidación inmediata
 let usuarioCache = null;
+
+/**
+ * Serializa y almacena en localStorage el objeto de sesión y perfil clínico (rc_user_cache).
+ * Estructura de negocio: { uid, nombre, apellido, email, rol, ultimaActividad }
+ * No almacena contraseñas ni credenciales sensibles.
+ * @param {object} userData
+ * @param {string} [uidFallback]
+ * @returns {object|null}
+ */
+export function guardarUsuarioEnLocalStorage(userData, uidFallback = '') {
+  if (!userData) return null;
+  try {
+    const cachePayload = {
+      uid: userData.uid || uidFallback || '',
+      nombre: userData.nombre || '',
+      apellido: userData.apellido || '',
+      email: userData.email || '',
+      rol: (userData.rol || 'paciente').toLowerCase(),
+      ultimaActividad: new Date().toISOString()
+    };
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify(cachePayload));
+    return cachePayload;
+  } catch (error) {
+    console.warn("Advertencia: No se pudo guardar rc_user_cache en localStorage:", error);
+    return null;
+  }
+}
+
+/**
+ * Obtiene y deserializa el objeto de perfil clínico ligero desde localStorage.
+ * @returns {object|null}
+ */
+export function obtenerUsuarioDeLocalStorage() {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.warn("Advertencia: No se pudo leer rc_user_cache de localStorage:", error);
+    return null;
+  }
+}
 
 /**
  * Registra un nuevo paciente en Firebase Auth y crea su documento en Firestore con su perfil clínico inicial.
@@ -105,6 +149,9 @@ export async function registrarPaciente(datos, apellidoParam, emailParam, passwo
 
     usuarioCache = { ...userData };
 
+    // Serializar y almacenar objeto de negocio rc_user_cache en localStorage
+    guardarUsuarioEnLocalStorage(userData, user.uid);
+
     return {
       authUser: user,
       userData
@@ -156,6 +203,9 @@ export async function iniciarSesion(email, password) {
 
     usuarioCache = { ...userData };
 
+    // Serializar y almacenar objeto de negocio rc_user_cache en localStorage
+    guardarUsuarioEnLocalStorage(userData, user.uid);
+
     return {
       authUser: user,
       userData
@@ -192,6 +242,15 @@ export function obtenerUsuarioActual(forzarRefresco = false) {
       return;
     }
 
+    if (!forzarRefresco && auth.currentUser) {
+      const cacheLocal = obtenerUsuarioDeLocalStorage();
+      if (cacheLocal && cacheLocal.uid === auth.currentUser.uid) {
+        usuarioCache = { ...cacheLocal };
+        resolve(usuarioCache);
+        return;
+      }
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       unsubscribe();
       if (!user) {
@@ -206,6 +265,7 @@ export function obtenerUsuarioActual(forzarRefresco = false) {
 
         if (userDocSnap.exists()) {
           usuarioCache = userDocSnap.data();
+          guardarUsuarioEnLocalStorage(usuarioCache, user.uid);
           resolve(usuarioCache);
         } else {
           const defaultData = {
@@ -216,31 +276,28 @@ export function obtenerUsuarioActual(forzarRefresco = false) {
             rol: 'paciente'
           };
           usuarioCache = defaultData;
+          guardarUsuarioEnLocalStorage(defaultData, user.uid);
           resolve(defaultData);
         }
       } catch (err) {
         console.error("Error al obtener datos en obtenerUsuarioActual:", err);
-        resolve({
+        const fallback = {
           uid: user.uid,
           email: user.email,
           nombre: user.displayName || user.email.split('@')[0],
           apellido: '',
           rol: 'paciente'
-        });
+        };
+        guardarUsuarioEnLocalStorage(fallback, user.uid);
+        resolve(fallback);
       }
     });
   });
 }
 
-/**
- * Invalida la caché local del usuario en memoria para forzar recarga.
- */
-export function invalidarCacheUsuario() {
-  usuarioCache = null;
-}
 
 /**
- * Actualiza la caché local de usuario en memoria con nuevos datos.
+ * Actualiza la caché local de usuario en memoria con nuevos datos y sincroniza localStorage.
  * @param {object} nuevosDatos 
  */
 export function actualizarCacheUsuario(nuevosDatos) {
@@ -249,11 +306,15 @@ export function actualizarCacheUsuario(nuevosDatos) {
   } else if (nuevosDatos) {
     usuarioCache = { ...nuevosDatos };
   }
+  if (usuarioCache) {
+    guardarUsuarioEnLocalStorage(usuarioCache);
+  }
 }
 
 /**
  * Wrapper reactivo sobre onAuthStateChanged que consulta Firestore y emite
  * al callback un objeto unificado { authUser, userData }.
+ * Sincroniza automáticamente rc_user_cache en localStorage.
  */
 export function onAuthChange(callback) {
   if (typeof callback !== 'function') {
@@ -263,6 +324,8 @@ export function onAuthChange(callback) {
   return onAuthStateChanged(auth, async (authUser) => {
     if (!authUser) {
       usuarioCache = null;
+      sessionStorage.removeItem(USER_CACHE_KEY);
+      localStorage.removeItem(USER_CACHE_KEY);
       callback({ authUser: null, userData: null });
       return;
     }
@@ -286,6 +349,7 @@ export function onAuthChange(callback) {
       }
 
       usuarioCache = { ...userData };
+      guardarUsuarioEnLocalStorage(userData, authUser.uid);
       callback({ authUser, userData });
     } catch (error) {
       console.error("Error al obtener documento en onAuthChange:", error);
@@ -297,6 +361,7 @@ export function onAuthChange(callback) {
         rol: 'paciente'
       };
       usuarioCache = fallbackData;
+      guardarUsuarioEnLocalStorage(fallbackData, authUser.uid);
       callback({ authUser, userData: fallbackData });
     }
   });

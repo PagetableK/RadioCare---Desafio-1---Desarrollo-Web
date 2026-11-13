@@ -140,9 +140,62 @@ export const CATALOGO_INICIAL_SEED = [
   }
 ];
 
+// Clave estandarizada y nombre clínico para el objeto de negocio en localStorage
+export const CATALOGO_CACHE_KEY = 'rc_catalogo_estudios';
+export const CLINICA_NOMBRE = 'RadioCare San Salvador';
+
+/**
+ * Serializa y guarda en localStorage el objeto de negocio del catálogo radiológico (rc_catalogo_estudios).
+ * Estructura requerida:
+ * {
+ *   "clinica": "RadioCare San Salvador",
+ *   "ultimaSincronizacion": "ISO_TIMESTAMP",
+ *   "totalEstudios": number,
+ *   "estudios": [ ...arreglo de estudios activos... ]
+ * }
+ * @param {Array<object>} estudios - Lista de estudios médicos activos
+ * @returns {object|null} El objeto de negocio guardado
+ */
+export function guardarCatalogoEnLocalStorage(estudios) {
+  try {
+    const lista = Array.isArray(estudios) ? estudios : [];
+    const objetoNegocio = {
+      clinica: CLINICA_NOMBRE,
+      ultimaSincronizacion: new Date().toISOString(),
+      totalEstudios: lista.length,
+      estudios: lista
+    };
+    localStorage.setItem(CATALOGO_CACHE_KEY, JSON.stringify(objetoNegocio));
+    return objetoNegocio;
+  } catch (error) {
+    console.warn("Advertencia: No se pudo almacenar rc_catalogo_estudios en localStorage:", error);
+    return null;
+  }
+}
+
+/**
+ * Obtiene y valida el objeto de negocio rc_catalogo_estudios guardado en localStorage.
+ * @returns {object|null}
+ */
+export function obtenerCatalogoDeLocalStorage() {
+  try {
+    const raw = localStorage.getItem(CATALOGO_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.estudios) && parsed.estudios.length > 0) {
+      return parsed;
+    }
+    return null;
+  } catch (error) {
+    console.warn("Advertencia: No se pudo leer rc_catalogo_estudios de localStorage:", error);
+    return null;
+  }
+}
+
 /**
  * Comprueba si la colección 'estudios' está vacía en Firestore.
  * Si no hay registros, inserta de forma automática el catálogo inicial seed mediante un batch atómico.
+ * Serializa y almacena el catálogo sincronizado en localStorage (rc_catalogo_estudios).
  * 
  * @returns {Promise<{ sembrado: boolean, total: number, mensaje: string }>}
  */
@@ -152,6 +205,13 @@ export async function inicializarCatalogoSeed() {
     const snapshot = await getDocs(colRef);
 
     if (!snapshot.empty) {
+      const estudiosActivos = snapshot.docs
+        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter(e => e.activo !== false);
+
+      // Sincronizar catálogo existente en localStorage
+      guardarCatalogoEnLocalStorage(estudiosActivos);
+
       return {
         sembrado: false,
         total: snapshot.size,
@@ -169,6 +229,9 @@ export async function inicializarCatalogoSeed() {
 
     await batch.commit();
 
+    const estudiosActivos = CATALOGO_INICIAL_SEED.filter(e => e.activo !== false);
+    guardarCatalogoEnLocalStorage(estudiosActivos);
+
     return {
       sembrado: true,
       total: CATALOGO_INICIAL_SEED.length,
@@ -176,11 +239,18 @@ export async function inicializarCatalogoSeed() {
     };
   } catch (error) {
     console.error("Error al inicializar catálogo seed en Firestore:", error);
-    // En caso de que Firebase esté offline o sin credenciales aún, no rompemos la UI
+    
+    // Respaldo resiliente: Si no hay catálogo en localStorage, almacenamos el inicial
+    const cache = obtenerCatalogoDeLocalStorage();
+    if (!cache) {
+      const seedActivos = CATALOGO_INICIAL_SEED.filter(e => e.activo !== false);
+      guardarCatalogoEnLocalStorage(seedActivos);
+    }
+
     return {
       sembrado: false,
       total: CATALOGO_INICIAL_SEED.length,
-      mensaje: "No se pudo conectar con Firestore para sembrar datos remotos. Se usará catálogo en memoria.",
+      mensaje: "No se pudo conectar con Firestore para sembrar datos remotos. Se usará catálogo en memoria o caché local.",
       error
     };
   }
@@ -188,40 +258,75 @@ export async function inicializarCatalogoSeed() {
 
 /**
  * Consulta y retorna la lista de todos los estudios activos desde Firestore.
- * Si la colección está vacía o recién inicializada, ejecuta el seed automáticamente.
+ * Serializa y almacena en localStorage el catálogo bajo 'rc_catalogo_estudios'.
+ * Si Firestore tarda o hay intermitencia de red, utiliza como respaldo
+ * los datos guardados en 'rc_catalogo_estudios'.
  * 
+ * @param {object} [opciones]
+ * @param {number} [opciones.timeoutMs=3500] Tiempo máximo de espera antes de recurrir a la caché
  * @returns {Promise<Array<object>>} Arreglo con los estudios médicos activos.
  */
-export async function obtenerEstudios() {
-  try {
+export async function obtenerEstudios(opciones = {}) {
+  const timeoutMs = typeof opciones.timeoutMs === 'number' ? opciones.timeoutMs : 3500;
+
+  // Promesa de timeout para evitar bloqueos si Firestore tarda o hay baja conectividad
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Timeout de red al conectar con Firestore (${timeoutMs}ms)`));
+    }, timeoutMs);
+  });
+
+  const consultarFirestore = async () => {
     const colRef = collection(db, 'estudios');
     const consultaActivos = query(colRef, where('activo', '==', true));
     const snapshot = await getDocs(consultaActivos);
 
     if (snapshot.empty) {
-      // Si no hay datos, intentamos sembrar automáticamente
+      // Si la colección remota está vacía, intentamos inicializar el seed
       await inicializarCatalogoSeed();
       const snapshotReintento = await getDocs(consultaActivos);
       
       if (!snapshotReintento.empty) {
-        return snapshotReintento.docs.map(docSnap => ({
+        const estudios = snapshotReintento.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()
         }));
+        guardarCatalogoEnLocalStorage(estudios);
+        return estudios;
       }
 
-      // Si aún estuviera vacío por temas de emulador o permisos, retornamos el catálogo representativo local
-      return CATALOGO_INICIAL_SEED.filter(e => e.activo);
+      // Si aún estuviera vacío por temas de emulador o permisos, retornamos el catálogo inicial
+      const seedActivos = CATALOGO_INICIAL_SEED.filter(e => e.activo !== false);
+      guardarCatalogoEnLocalStorage(seedActivos);
+      return seedActivos;
     }
 
-    return snapshot.docs.map(docSnap => ({
+    const estudios = snapshot.docs.map(docSnap => ({
       id: docSnap.id,
       ...docSnap.data()
     }));
+
+    // Serializar y almacenar el objeto de negocio en localStorage bajo 'rc_catalogo_estudios'
+    guardarCatalogoEnLocalStorage(estudios);
+    return estudios;
+  };
+
+  try {
+    return await Promise.race([consultarFirestore(), timeoutPromise]);
   } catch (error) {
-    console.warn("Aviso: Error consultando Firestore (posible modo offline o API Key placeholder). Utilizando catálogo local:", error);
-    // Fallback de resiliencia: la interfaz nunca debe quedar rota si Firebase no tiene red
-    return CATALOGO_INICIAL_SEED.filter(e => e.activo);
+    console.warn("Aviso: Firestore tardó o presentó error de red. Utilizando respaldo de catálogo:", error);
+
+    // Respaldo primario: datos guardados previamente en 'rc_catalogo_estudios'
+    const catalogoCache = obtenerCatalogoDeLocalStorage();
+    if (catalogoCache && Array.isArray(catalogoCache.estudios) && catalogoCache.estudios.length > 0) {
+      console.info(`RadioCare: Recuperados ${catalogoCache.estudios.length} estudios desde caché local (rc_catalogo_estudios). Sincronización previa: ${catalogoCache.ultimaSincronizacion}`);
+      return catalogoCache.estudios;
+    }
+
+    // Respaldo secundario: catálogo inicial representativo
+    const seedActivos = CATALOGO_INICIAL_SEED.filter(e => e.activo !== false);
+    guardarCatalogoEnLocalStorage(seedActivos);
+    return seedActivos;
   }
 }
 

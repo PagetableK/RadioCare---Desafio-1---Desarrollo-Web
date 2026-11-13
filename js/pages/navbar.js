@@ -6,271 +6,12 @@
 
 import { onAuthChange, cerrarSesion, obtenerUsuarioActual, auth } from "../services/auth.service.js";
 
-// ID estático para inyección de estilos de forma limpia y única
-const STYLES_ID = 'rc-navbar-avatar-styles';
-
 /**
- * Inyecta dinámicamente las reglas CSS para el Avatar Dropdown si no existen en el DOM.
- * Utiliza variables nativas de RadioCare para preservar la estética oscura institucional.
+ * Asegura la disponibilidad de los estilos del Avatar Dropdown.
+ * Los estilos institucionales han sido centralizados en css/base.css para evitar inyecciones dinámicas.
  */
 function asegurarEstilosDropdown() {
-  if (document.getElementById(STYLES_ID)) return;
-
-  const styleEl = document.createElement('style');
-  styleEl.id = STYLES_ID;
-  styleEl.textContent = `
-    /* =========================================================
-       RadioCare - Avatar Dropdown (Estilo ChocoMapaSV)
-       ========================================================= */
-    .rc-nav-item {
-      display: inline-flex;
-      align-items: center;
-      position: relative;
-    }
-
-    .rc-avatar-wrapper {
-      position: relative;
-      display: inline-block;
-    }
-
-    /* Botón circular de Avatar */
-    .rc-avatar-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--color-iris-pulse, #5350cc) 0%, var(--color-iris-glow, #403cd5) 100%);
-      border: 2px solid var(--color-clinical-cyan, #00b1ff);
-      color: var(--color-cloud-white, #ffffff);
-      font-family: inherit;
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 177, 255, 0.25);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-      outline: none;
-      padding: 0;
-      user-select: none;
-    }
-
-    .rc-avatar-btn:hover,
-    .rc-avatar-btn:focus-visible {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 177, 255, 0.45);
-      border-color: var(--color-mint-vital, #00ffaa);
-    }
-
-    .rc-avatar-btn[aria-expanded="true"] {
-      border-color: var(--color-mint-vital, #00ffaa);
-      box-shadow: 0 0 0 3px rgba(0, 255, 170, 0.3);
-    }
-
-    /* Menú flotante Dropdown */
-    .rc-avatar-dropdown {
-      position: absolute;
-      top: calc(100% + 14px);
-      right: 0;
-      width: 290px;
-      background: rgba(22, 22, 92, 0.97);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid var(--color-iris-border, #4846c6);
-      border-radius: 20px;
-      box-shadow: 0 20px 45px rgba(10, 10, 45, 0.65), 0 0 0 1px rgba(177, 166, 246, 0.15);
-      padding: 16px;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-10px) scale(0.97);
-      transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
-                  transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
-                  visibility 0.22s;
-      pointer-events: none;
-    }
-
-    .rc-avatar-dropdown.rc-dropdown--activo {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-    }
-
-    /* Encabezado del Dropdown */
-    .rc-dropdown-header {
-      padding-bottom: 12px;
-    }
-
-    .rc-dropdown-tag {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--color-mint-vital, #00ffaa);
-      margin-bottom: 6px;
-    }
-
-    .rc-dropdown-nombre {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--color-cloud-white, #ffffff);
-      line-height: 1.25;
-      margin: 0 0 4px 0;
-      word-break: break-word;
-    }
-
-    .rc-dropdown-email {
-      font-size: 13px;
-      color: var(--color-ash, #d8d8e3);
-      line-height: 1.3;
-      margin: 0 0 8px 0;
-      word-break: break-all;
-    }
-
-    .rc-dropdown-rol {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 9999px;
-      text-transform: capitalize;
-    }
-
-    .rc-dropdown-rol--paciente {
-      background: rgba(0, 177, 255, 0.15);
-      border: 1px solid var(--color-clinical-cyan, #00b1ff);
-      color: var(--color-clinical-cyan, #00b1ff);
-    }
-
-    .rc-dropdown-rol--coordinador {
-      background: rgba(0, 255, 170, 0.15);
-      border: 1px solid var(--color-mint-vital, #00ffaa);
-      color: var(--color-mint-vital, #00ffaa);
-    }
-
-    /* Separador visual */
-    .rc-dropdown-divider {
-      height: 1px;
-      background: var(--color-iris-border, #4846c6);
-      margin: 10px -16px;
-      opacity: 0.7;
-    }
-
-    /* Elementos interactivos del menú */
-    .rc-dropdown-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      box-sizing: border-box;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: transparent;
-      border: none;
-      color: var(--color-cloud-white, #ffffff);
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 500;
-      text-align: left;
-      text-decoration: none;
-      cursor: pointer;
-      transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
-    }
-
-    .rc-dropdown-item svg {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      stroke: var(--color-lilac-mist, #b1a6f6);
-      transition: stroke 0.18s ease, transform 0.18s ease;
-    }
-
-    .rc-dropdown-item:hover,
-    .rc-dropdown-item:focus-visible {
-      background: var(--color-iris-shadow, #232269);
-      color: var(--color-clinical-cyan, #00b1ff);
-      transform: translateX(2px);
-      outline: none;
-    }
-
-    .rc-dropdown-item:hover svg,
-    .rc-dropdown-item:focus-visible svg {
-      stroke: var(--color-clinical-cyan, #00b1ff);
-      transform: scale(1.08);
-    }
-
-    .rc-dropdown-item-meta strong {
-      display: block;
-      font-size: 14px;
-      line-height: 1.2;
-    }
-
-    .rc-dropdown-item-meta small {
-      display: block;
-      font-size: 11px;
-      color: var(--color-fog, #9494a9);
-      margin-top: 2px;
-    }
-
-    /* Opción de Cerrar Sesión */
-    .rc-dropdown-item--logout {
-      color: #ff8597;
-    }
-
-    .rc-dropdown-item--logout svg {
-      stroke: #ff6b81;
-    }
-
-    .rc-dropdown-item--logout:hover,
-    .rc-dropdown-item--logout:focus-visible {
-      background: rgba(255, 77, 109, 0.14);
-      color: #ffa4b2;
-    }
-
-    .rc-dropdown-item--logout:hover svg,
-    .rc-dropdown-item--logout:focus-visible svg {
-      stroke: #ffa4b2;
-    }
-
-    /* Animación genérica de entrada */
-    @keyframes rcFadeIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes rcSpin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Adaptación Responsiva para móviles */
-    @media (max-width: 860px) {
-      .rc-avatar-dropdown {
-        position: static;
-        width: 100%;
-        margin-top: 10px;
-        box-shadow: none;
-        border-color: var(--color-iris-border, #4846c6);
-        background: var(--color-deep-iris, #16165c);
-      }
-      
-      .rc-avatar-wrapper {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-      }
-      
-      .rc-avatar-btn {
-        margin: 4px 0;
-      }
-    }
-  `;
-
-  document.head.appendChild(styleEl);
+  // Estilos centralizados en css/base.css
 }
 
 /**
@@ -502,10 +243,34 @@ function renderizarEstadoConSesion(container, authUser, userData) {
         window.location.href = 'index.html';
       } catch (err) {
         console.error("Error al cerrar sesión desde navbar:", err);
+        localStorage.removeItem('rc_user_cache');
+        sessionStorage.removeItem('rc_user_cache');
         window.location.href = 'index.html';
       }
     });
   }
+}
+
+/**
+ * Pre-renderiza de inmediato el avatar circular con la inicial a partir de rc_user_cache en localStorage,
+ * eliminando el parpadeo de la barra de navegación mientras Firebase Auth revalida en segundo plano.
+ * @param {HTMLElement} container
+ * @returns {boolean} True si se pudo pre-renderizar desde caché
+ */
+function prerenderizarDesdeCache(container) {
+  if (!container) return false;
+  try {
+    const raw = localStorage.getItem('rc_user_cache');
+    if (!raw) return false;
+    const cachedUser = JSON.parse(raw);
+    if (cachedUser && (cachedUser.uid || cachedUser.email || cachedUser.nombre)) {
+      renderizarEstadoConSesion(container, cachedUser, cachedUser);
+      return true;
+    }
+  } catch (err) {
+    console.warn("Aviso: Error leyendo rc_user_cache para pre-renderizado de navbar:", err);
+  }
+  return false;
 }
 
 /**
@@ -535,7 +300,12 @@ function iniciarNavbar() {
   asegurarEstilosDropdown();
   const contenedor = obtenerContenedorAuth();
 
-  // Escuchar reactivamente los cambios en el estado de autenticación
+  // 1. Si existe rc_user_cache en localStorage, pre-renderizar de inmediato el avatar circular
+  if (contenedor) {
+    prerenderizarDesdeCache(contenedor);
+  }
+
+  // 2. Escuchar reactivamente los cambios en el estado de autenticación con Firebase
   onAuthChange(({ authUser, userData }) => {
     const cont = obtenerContenedorAuth();
     if (!cont) return;
@@ -554,6 +324,13 @@ function iniciarNavbar() {
       revalidarSesion();
     }
   });
+}
+
+// Pre-renderizado ultra-temprano síncrono si el contenedor de auth ya existe en el DOM
+const contenedorInmediato = obtenerContenedorAuth();
+if (contenedorInmediato) {
+  asegurarEstilosDropdown();
+  prerenderizarDesdeCache(contenedorInmediato);
 }
 
 // Ejecución al cargar el DOM o inmediatamente si ya está listo

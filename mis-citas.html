@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mis Citas | Portal de Pacientes RadioCare</title>
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/citas.css">
   <link rel="stylesheet" href="css/panel.css">
 </head>
 
@@ -87,7 +88,22 @@
           </div>
 
           <div class="panel-tabla-wrap" id="historial-citas">
-            <!-- El contenido dinámico es renderizado por mis-citas.page.js -->
+            <table class="panel-tabla">
+              <thead>
+                <tr>
+                  <th>Fecha y Hora</th>
+                  <th>PACIENTE / DESTINATARIO</th>
+                  <th>Estudio Solicitado</th>
+                  <th class="text-center">PREPARACIÓN</th>
+                  <th>MÉDICO RADIÓLOGO</th>
+                  <th>Estado</th>
+                  <th>INFORME DIAGNÓSTICO</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Contenido dinámico renderizado por mis-citas.page.js -->
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -132,6 +148,81 @@
     </div>
   </div>
 
+  <!-- MODAL ACCESIBLE DE EDICIÓN DE CITA (PACIENTE) -->
+  <div id="modal-editar-cita" class="modal-preparacion oculto" role="dialog" aria-modal="true" aria-labelledby="modal-editar-cita-titulo" hidden>
+    <div class="modal-preparacion__backdrop" id="modal-editar-backdrop"></div>
+    <div class="modal-preparacion__contenedor" style="max-width: 540px;">
+      <div class="modal-preparacion__header">
+        <div class="modal-preparacion__header-text">
+          <div class="modal-preparacion__icono-wrap" aria-hidden="true" style="background: rgba(177, 166, 246, 0.15); border-color: rgba(177, 166, 246, 0.3); color: var(--color-lilac-mist);">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 id="modal-editar-cita-titulo" class="modal-preparacion__titulo">Modificar Cita Médica</h2>
+            <span id="modal-editar-cita-estudio" class="modal-preparacion__badge">Estudio Radiológico</span>
+          </div>
+        </div>
+        <button type="button" class="modal-preparacion__cerrar" id="btn-cerrar-modal-editar" aria-label="Cerrar modal de modificación de cita">✕</button>
+      </div>
+
+      <form id="form-editar-cita" novalidate>
+        <input type="hidden" id="editar-cita-id" name="citaId">
+
+        <div class="modal-preparacion__cuerpo" style="display: flex; flex-direction: column; gap: 16px;">
+          <div id="alerta-modal-editar" aria-live="polite"></div>
+
+          <div class="campo">
+            <label for="editar-fecha" class="label">Nueva fecha preferida <span class="requerido" aria-hidden="true">*</span></label>
+            <input type="date" id="editar-fecha" name="fecha" class="input" required
+                   title="Seleccione una fecha a partir de mañana"
+                   aria-describedby="editar-fecha-ayuda">
+            <span class="ayuda" id="editar-fecha-ayuda" style="font-size: 12px; color: var(--color-fog);">
+              Atención de lunes a sábado. No disponible domingos ni fechas pasadas.
+            </span>
+          </div>
+
+          <div class="campo">
+            <label for="editar-horario" class="label">Nueva franja horaria preferida <span class="requerido" aria-hidden="true">*</span></label>
+            <select id="editar-horario" name="horario" class="select" required
+                    title="Seleccione la franja horaria de su preferencia"
+                    aria-describedby="editar-horario-ayuda">
+              <option value="">Seleccione franja…</option>
+              <option value="manana-temprana">6:30 a. m. – 9:00 a. m.</option>
+              <option value="manana">9:00 a. m. – 12:00 p. m.</option>
+              <option value="mediodia">12:00 p. m. – 2:00 p. m. (mediodía, lun-vie)</option>
+              <option value="tarde">2:00 p. m. – 4:30 p. m. (tarde, lun-vie)</option>
+            </select>
+            <span class="ayuda" id="editar-horario-ayuda" style="font-size: 12px; color: var(--color-fog);">
+              Los sábados la atención es exclusivamente matutina.
+            </span>
+          </div>
+
+          <div class="campo">
+            <label for="editar-notas" class="label">Notas clínicas o indicaciones adicionales (opcional)</label>
+            <textarea id="editar-notas" name="notas" class="textarea" rows="3" maxlength="600"
+                      placeholder="Información adicional relevante o indicaciones de su médico..."
+                      aria-describedby="editar-notas-ayuda"></textarea>
+            <span class="ayuda" id="editar-notas-ayuda" style="font-size: 12px; color: var(--color-fog);">
+              Máximo 600 caracteres.
+            </span>
+          </div>
+        </div>
+
+        <div class="modal-preparacion__footer" style="display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn--fantasma" id="btn-cancelar-modal-editar" style="font-size: 13px; padding: 8px 20px;">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn--primario" id="btn-guardar-modal-editar" style="font-size: 13px; padding: 8px 24px;">
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="contenedor">
       <p class="footer__legal">©2026 RadioCare - Portal Pacientes</p>
@@ -144,4 +235,3 @@
 </body>
 
 </html>
-

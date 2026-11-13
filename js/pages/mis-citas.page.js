@@ -2,13 +2,29 @@
  * RadioCare - Lógica de Mis Citas (mis-citas.page.js)
  * Manejo de control de sesión estricto, protección Anti-BFCache,
  * consulta reactiva a Firestore en colección 'citas' filtrada por usuarioId,
- * renderizado dinámico de registros, gestión de estado vacío (Empty State)
- * y actualización en tiempo real de tarjetas de métricas del expediente.
+ * renderizado dinámico de registros con soporte para edición y cancelación de citas pendientes,
+ * modales interactivos y accesibles (preparación y edición), feedback con toasts y confirmaciones accesibles.
  */
 
 import { onAuthChange, obtenerUsuarioActual, auth } from "../services/auth.service.js";
-import { obtenerCitasPorUsuario, cancelarCita } from "../services/citas.service.js";
+import { 
+  obtenerMisCitas, 
+  actualizarCitaPaciente, 
+  cancelarCitaPaciente,
+  obtenerInformePorCita
+} from "../services/citas.service.js";
 import { obtenerEstudios } from "../services/estudios.service.js";
+import { 
+  mostrarToast, 
+  mostrarModalConfirmacion, 
+  setBotonCargando, 
+  mostrarAlerta, 
+  limpiarAlerta 
+} from "../utils/ui.js";
+import { 
+  validarFechaCita, 
+  validarHorarioSabado 
+} from "../utils/validators.js";
 
 /* ==========================================================================
    REFERENCIAS AL DOM
@@ -29,9 +45,24 @@ const btnCerrarModal = document.getElementById('btn-cerrar-modal');
 const btnEntendidoModal = document.getElementById('btn-entendido-modal');
 const modalBackdrop = document.getElementById('modal-preparacion-backdrop');
 
+// Modal interactivo de modificación de cita
+const modalEditarCita = document.getElementById('modal-editar-cita');
+const modalEditarBackdrop = document.getElementById('modal-editar-backdrop');
+const btnCerrarModalEditar = document.getElementById('btn-cerrar-modal-editar');
+const btnCancelarModalEditar = document.getElementById('btn-cancelar-modal-editar');
+const btnGuardarModalEditar = document.getElementById('btn-guardar-modal-editar');
+const formEditarCita = document.getElementById('form-editar-cita');
+const editarCitaIdInput = document.getElementById('editar-cita-id');
+const modalEditarEstudioBadge = document.getElementById('modal-editar-cita-estudio');
+const editarFechaInput = document.getElementById('editar-fecha');
+const editarHorarioSelect = document.getElementById('editar-horario');
+const editarNotasTextarea = document.getElementById('editar-notas');
+const alertaModalEditar = document.getElementById('alerta-modal-editar');
+
 // Estado local
 let usuarioAuthActual = null;
 let catalogoEstudios = [];
+let citasCache = [];
 let ultimoElementoEnfocado = null;
 const mapaPreparacionCitas = new Map();
 
@@ -178,7 +209,7 @@ function resolverPreparacion(cita) {
     return PREPARACIONES_POR_DEFECTO['us-vejiga'];
   }
   if (tipoMin.includes('embaraz') || tipoMin.includes('obstetr')) {
-    return PREPARACIONES_POR_DEFECTO['us-obstetrico'];
+    return PREPARACIONES_POR_DEFECTO['us-embarzo'];
   }
   if (tipoMin.includes('renal')) {
     return PREPARACIONES_POR_DEFECTO['us-renal'];
@@ -197,6 +228,67 @@ function resolverPreparacion(cita) {
   }
 
   return "Este estudio no requiere preparación previa especial. Presentarse 15 minutos antes con ropa cómoda.";
+}
+
+/* ==========================================================================
+   DESCARGA Y GESTIÓN DE ARCHIVOS CLÍNICOS (BASE64 / DATA URLS / BLOBS)
+   ========================================================================== */
+
+/**
+ * Convierte un Data URL o Base64 en Blob y dispara la descarga real en el navegador.
+ * Compatible con archivos PDF e imágenes médicas DICOM bajo el plan gratuito de Firestore.
+ * @param {string} dataBase64 - Contenido Base64 o Data URL
+ * @param {string} nombreArchivo - Nombre del archivo a descargar (ej. Informe_123.pdf)
+ * @param {string} [tipoMime] - Tipo MIME por defecto si no viene en dataBase64
+ */
+function descargarArchivoBase64(dataBase64, nombreArchivo = 'informe.pdf', tipoMime = 'application/pdf') {
+  if (!dataBase64) return;
+
+  let base64Limpio = dataBase64;
+  let mime = tipoMime || 'application/pdf';
+
+  if (dataBase64.startsWith('data:')) {
+    const partes = dataBase64.split(',');
+    const mimeMatch = partes[0].match(/:(.*?);/);
+    if (mimeMatch) {
+      mime = mimeMatch[1];
+    }
+    base64Limpio = partes[1] || '';
+  }
+
+  // Eliminar espacios en blanco y saltos de línea para compatibilidad con atob
+  base64Limpio = base64Limpio.replace(/\s/g, '');
+
+  try {
+    const caracteresBinarios = atob(base64Limpio);
+    const longitud = caracteresBinarios.length;
+    const bytes = new Uint8Array(longitud);
+
+    for (let i = 0; i < longitud; i++) {
+      bytes[i] = caracteresBinarios.charCodeAt(i);
+    }
+
+    const blob = new Blob([bytes], { type: mime });
+    const blobUrl = URL.createObjectURL(blob);
+
+    const enlaceDescarga = document.createElement('a');
+    enlaceDescarga.href = blobUrl;
+    enlaceDescarga.download = nombreArchivo;
+    enlaceDescarga.style.display = 'none';
+
+    document.body.appendChild(enlaceDescarga);
+    enlaceDescarga.click();
+
+    setTimeout(() => {
+      if (document.body.contains(enlaceDescarga)) {
+        document.body.removeChild(enlaceDescarga);
+      }
+      URL.revokeObjectURL(blobUrl);
+    }, 1500);
+  } catch (error) {
+    console.error("Error al procesar la decodificación Base64 del archivo:", error);
+    throw new Error("El archivo adjunto presenta un formato no válido.");
+  }
 }
 
 /* ==========================================================================
@@ -227,7 +319,6 @@ function abrirModalPreparacion(estudioNombre, preparacionTexto) {
   modalPreparacion.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 
-  // Foco accesible al botón Entendido o Cerrar
   (btnEntendidoModal || btnCerrarModal)?.focus();
 }
 
@@ -247,31 +338,282 @@ function cerrarModalPreparacion() {
   }
 }
 
-// Event Listeners de cierre del modal
-if (btnCerrarModal) {
-  btnCerrarModal.addEventListener('click', cerrarModalPreparacion);
-}
+// Event Listeners de cierre del modal de preparación
+btnCerrarModal?.addEventListener('click', cerrarModalPreparacion);
+btnEntendidoModal?.addEventListener('click', cerrarModalPreparacion);
+modalBackdrop?.addEventListener('click', cerrarModalPreparacion);
 
-if (btnEntendidoModal) {
-  btnEntendidoModal.addEventListener('click', cerrarModalPreparacion);
-}
-
-if (modalBackdrop) {
-  modalBackdrop.addEventListener('click', cerrarModalPreparacion);
-}
-
-if (modalPreparacion) {
-  modalPreparacion.addEventListener('click', (e) => {
-    if (e.target === modalPreparacion) {
-      cerrarModalPreparacion();
-    }
-  });
-}
-
-// Cierre accesible con la tecla Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modalPreparacion && !modalPreparacion.classList.contains('oculto') && !modalPreparacion.hasAttribute('hidden')) {
+modalPreparacion?.addEventListener('click', (e) => {
+  if (e.target === modalPreparacion) {
     cerrarModalPreparacion();
+  }
+});
+
+/* ==========================================================================
+   CONTROL DE MODAL ACCESIBLE DE EDICIÓN DE CITA (PACIENTE)
+   ========================================================================== */
+
+/**
+ * Actualiza la disponibilidad de franjas horarias en el modal según la fecha seleccionada.
+ * Si es sábado (día 6): habilita exclusivamente turnos matutinos (6:30 a. m. a 12:00 p. m.).
+ * Si es lunes a viernes: habilita todas las opciones regulares.
+ * @param {string} fechaValor - Cadena YYYY-MM-DD
+ */
+function actualizarFranjasModalEditar(fechaValor) {
+  if (!editarHorarioSelect) return;
+
+  if (!fechaValor) {
+    Array.from(editarHorarioSelect.options).forEach((opt) => {
+      opt.disabled = false;
+      opt.hidden = false;
+    });
+    return;
+  }
+
+  const partes = fechaValor.split('-');
+  if (partes.length !== 3) return;
+  const fechaObj = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10));
+  if (isNaN(fechaObj.getTime())) return;
+
+  const diaSemana = fechaObj.getDay();
+
+  if (diaSemana === 6) {
+    // Sábado: Exclusivamente turnos matutinos
+    const matutinas = ['manana-temprana', 'manana'];
+    let teniaTarde = false;
+
+    Array.from(editarHorarioSelect.options).forEach((opt) => {
+      if (!opt.value) return;
+      if (matutinas.includes(opt.value)) {
+        opt.disabled = false;
+        opt.hidden = false;
+      } else {
+        opt.disabled = true;
+        opt.hidden = true;
+        if (editarHorarioSelect.value === opt.value) {
+          teniaTarde = true;
+        }
+      }
+    });
+
+    if (teniaTarde) {
+      editarHorarioSelect.value = '';
+      mostrarAlerta(
+        alertaModalEditar,
+        'Los sábados la atención es exclusivamente matutina (6:30 a. m. a 12:00 p. m.). Seleccione un turno de la mañana.',
+        'warning'
+      );
+    }
+  } else {
+    // Lunes a viernes: Habilitar todas las opciones regulares
+    Array.from(editarHorarioSelect.options).forEach((opt) => {
+      opt.disabled = false;
+      opt.hidden = false;
+    });
+  }
+}
+
+/**
+ * Abre el modal accesible de edición precargado con los datos de la cita.
+ * @param {object} cita
+ */
+function abrirModalEditar(cita) {
+  if (!modalEditarCita || !cita) return;
+
+  ultimoElementoEnfocado = document.activeElement;
+
+  if (editarCitaIdInput) {
+    editarCitaIdInput.value = cita.id;
+  }
+
+  if (modalEditarEstudioBadge) {
+    modalEditarEstudioBadge.textContent = formatearEstudio(cita);
+  }
+
+  // Establecer fecha mínima: mañana en hora local
+  const manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  const anioMin = manana.getFullYear();
+  const mesMin = String(manana.getMonth() + 1).padStart(2, '0');
+  const diaMin = String(manana.getDate()).padStart(2, '0');
+  const fechaMinStr = `${anioMin}-${mesMin}-${diaMin}`;
+
+  if (editarFechaInput) {
+    editarFechaInput.min = fechaMinStr;
+    const fechaActual = cita.agenda?.fecha || cita.fecha || '';
+    editarFechaInput.value = fechaActual;
+    editarFechaInput.style.borderColor = '';
+    actualizarFranjasModalEditar(fechaActual);
+  }
+
+  if (editarHorarioSelect) {
+    const horarioActual = cita.agenda?.horario || cita.horario || '';
+    editarHorarioSelect.value = horarioActual;
+  }
+
+  if (editarNotasTextarea) {
+    editarNotasTextarea.value = cita.clinica?.notas || cita.notas || '';
+  }
+
+  limpiarAlerta(alertaModalEditar);
+
+  modalEditarCita.classList.remove('oculto');
+  modalEditarCita.removeAttribute('hidden');
+  modalEditarCita.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+
+  // Foco inicial accesible
+  setTimeout(() => {
+    editarFechaInput?.focus();
+  }, 50);
+}
+
+/**
+ * Cierra el modal de edición de cita y restaura el foco accesible.
+ */
+function cerrarModalEditar() {
+  if (!modalEditarCita) return;
+
+  modalEditarCita.classList.add('oculto');
+  modalEditarCita.setAttribute('hidden', 'true');
+  modalEditarCita.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+
+  limpiarAlerta(alertaModalEditar);
+
+  if (ultimoElementoEnfocado && typeof ultimoElementoEnfocado.focus === 'function') {
+    ultimoElementoEnfocado.focus();
+  }
+}
+
+// Listeners de cierre del modal de edición
+btnCerrarModalEditar?.addEventListener('click', cerrarModalEditar);
+btnCancelarModalEditar?.addEventListener('click', cerrarModalEditar);
+modalEditarBackdrop?.addEventListener('click', cerrarModalEditar);
+
+// Validación reactiva de fecha al escribir o cambiar
+editarFechaInput?.addEventListener('change', () => {
+  const fecha = editarFechaInput.value;
+  limpiarAlerta(alertaModalEditar);
+
+  if (!fecha) {
+    editarFechaInput.style.borderColor = '';
+    return;
+  }
+
+  if (!validarFechaCita(fecha)) {
+    editarFechaInput.style.borderColor = '#ff4d6d';
+    mostrarAlerta(
+      alertaModalEditar,
+      'Fecha no disponible. Recuerde que atendemos de lunes a sábado con al menos 24 horas de antelación (domingos la clínica permanece cerrada).',
+      'warning'
+    );
+    return;
+  }
+
+  editarFechaInput.style.borderColor = '';
+  actualizarFranjasModalEditar(fecha);
+});
+
+// Listener de cambio en franja horaria
+editarHorarioSelect?.addEventListener('change', () => {
+  limpiarAlerta(alertaModalEditar);
+  const fecha = editarFechaInput?.value;
+  const horario = editarHorarioSelect.value;
+
+  if (fecha && horario) {
+    if (!validarHorarioSabado(fecha, horario)) {
+      mostrarAlerta(
+        alertaModalEditar,
+        'Los sábados la atención es exclusivamente matutina (6:30 a. m. a 12:00 p. m.).',
+        'warning'
+      );
+    }
+  }
+});
+
+// Guardado del formulario de modificación de cita
+formEditarCita?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  limpiarAlerta(alertaModalEditar);
+
+  const citaId = editarCitaIdInput?.value;
+  const fecha = editarFechaInput?.value?.trim();
+  const horario = editarHorarioSelect?.value?.trim();
+  const notas = editarNotasTextarea?.value?.trim() || '';
+
+  if (!citaId) {
+    mostrarAlerta(alertaModalEditar, 'No se identificó la cita médica a modificar.', 'error');
+    return;
+  }
+
+  // Validaciones con funciones puras centralizadas
+  if (!fecha || !validarFechaCita(fecha)) {
+    editarFechaInput.style.borderColor = '#ff4d6d';
+    mostrarAlerta(
+      alertaModalEditar,
+      'Por favor seleccione una fecha válida (de lunes a sábado, con al menos 24 horas de antelación).',
+      'warning'
+    );
+    editarFechaInput?.focus();
+    return;
+  }
+
+  if (!horario) {
+    mostrarAlerta(alertaModalEditar, 'Por favor seleccione la franja horaria deseada.', 'warning');
+    editarHorarioSelect?.focus();
+    return;
+  }
+
+  if (!validarHorarioSabado(fecha, horario)) {
+    mostrarAlerta(
+      alertaModalEditar,
+      'La fecha seleccionada corresponde a día sábado: únicamente se permiten turnos matutinos (entre 6:30 a. m. y 12:00 p. m.).',
+      'warning'
+    );
+    editarHorarioSelect?.focus();
+    return;
+  }
+
+  try {
+    setBotonCargando(btnGuardarModalEditar, true, 'Guardando cambios...');
+
+    await actualizarCitaPaciente(citaId, {
+      fecha,
+      horario,
+      notas
+    });
+
+    cerrarModalEditar();
+    mostrarToast('Cita modificada exitosamente.', 'exito');
+
+    // Refrescar reactivamente la tabla de citas sin recargar la página completa
+    if (usuarioAuthActual) {
+      await cargarCitasUsuario(usuarioAuthActual.uid);
+    }
+  } catch (error) {
+    console.error("Error al actualizar la cita médica:", error);
+    mostrarAlerta(
+      alertaModalEditar,
+      error.message || 'No fue posible actualizar su cita. Por favor intente nuevamente.',
+      'error'
+    );
+  } finally {
+    setBotonCargando(btnGuardarModalEditar, false);
+  }
+});
+
+// Cierre accesible con Escape para ambos modales
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (modalEditarCita && !modalEditarCita.classList.contains('oculto') && !modalEditarCita.hasAttribute('hidden')) {
+      cerrarModalEditar();
+      return;
+    }
+    if (modalPreparacion && !modalPreparacion.classList.contains('oculto') && !modalPreparacion.hasAttribute('hidden')) {
+      cerrarModalPreparacion();
+      return;
+    }
   }
 });
 
@@ -302,7 +644,6 @@ function renderizarEstadoCarga() {
 
 /**
  * Renderiza el bloque de estado vacío cuando la consulta retorna 0 registros.
- * Contiene un icono sutil, el mensaje requerido y botón destacado hacia citas.html.
  */
 function renderizarEstadoVacio() {
   if (!historialCitasContenedor) return;
@@ -333,14 +674,38 @@ function renderizarTablaCitas(citas) {
 
   const filasHtml = citas.map((cita, index) => {
     // 1. Fecha y Hora: agenda.fecha + agenda.horario
-    const fecha = cita.agenda?.fecha || 'Sin fecha asignada';
-    const horarioFormateado = formatearHorario(cita.agenda?.horario);
+    const fecha = cita.agenda?.fecha || cita.fecha || 'Sin fecha asignada';
+    const horarioFormateado = formatearHorario(cita.agenda?.horario || cita.horario);
     const fechaHoraHtml = `<strong>${fecha}</strong>${horarioFormateado ? `<br><span style="font-size: 13px; color: var(--color-fog);">${horarioFormateado}</span>` : ''}`;
 
-    // 2. Estudio Solicitado: estudio o estudioNombre
+    // 2. Paciente / Destinatario (Para mí vs Familiar)
+    const esFamiliar = cita.tipoDestinatario === 'familiar' || cita.destinatario === 'para-familiar';
+    const nombrePaciente = (
+      cita.pacienteNombreCompleto || 
+      `${cita.paciente?.nombre || ''} ${cita.paciente?.apellidos || ''}`.trim() || 
+      (esFamiliar ? 'Familiar' : (usuarioAuthActual?.displayName || 'Titular'))
+    ).trim();
+
+    let pacienteHtml = '';
+    if (esFamiliar) {
+      pacienteHtml = `
+        <div style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span class="badge-destinatario badge-destinatario--familiar">Familiar</span>
+          <strong style="color: var(--color-cloud-white); font-weight: 600;">${nombrePaciente}</strong>
+        </div>
+      `;
+    } else {
+      pacienteHtml = `
+        <div style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span class="badge-destinatario badge-destinatario--personal">Para mí</span>
+        </div>
+      `;
+    }
+
+    // 3. Estudio Solicitado
     const estudioNombre = formatearEstudio(cita);
 
-    // Preparación Médica (obtenida del documento o cruzada con el catálogo)
+    // Preparación Médica
     const preparacionTexto = resolverPreparacion(cita);
     const idCita = cita.id || `cita-${index}-${Date.now()}`;
     mapaPreparacionCitas.set(idCita, {
@@ -364,28 +729,73 @@ function renderizarTablaCitas(citas) {
       </button>
     `;
 
-    // 3. Médico: medicoAsignado || "Pendiente de asignación"
-    const medico = cita.medicoAsignado || cita.contacto?.medico || cita.medico || "Pendiente de asignación";
+    // 4. Médico Radiólogo Asignado (Destacado vs Pendiente)
+    const nombreMedico = (cita.medicoAsignado || cita.medico || '').trim();
+    let medicoHtml = '';
+    if (nombreMedico) {
+      medicoHtml = `
+        <strong class="medico-destacado">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          ${nombreMedico}
+        </strong>
+      `;
+    } else {
+      medicoHtml = `<span class="medico-pendiente">Pendiente de asignación</span>`;
+    }
 
-    // 4. Estado: Badge con clase CSS según el valor
+    // 5. Estado: Badge con clase CSS según el valor
     const estado = (cita.estado || 'pendiente').toLowerCase();
     const textoEstado = estado.charAt(0).toUpperCase() + estado.slice(1);
     const badgeHtml = `<span class="badge-estado badge-estado--${estado} badge--${estado}">${textoEstado}</span>`;
 
-    // 5. Acción/Informe: Si está pendiente, botón para cancelar; si está completada, botón simulado de informe
+    // 6. Acciones / Informe Diagnóstico:
     let accionHtml = '';
     if (estado === 'pendiente') {
       accionHtml = `
-        <button type="button" class="btn btn--peligro btn-cancelar-cita" data-id="${cita.id}" style="padding: 6px 14px; font-size: 12px; border-radius: 9999px;">
-          Cancelar cita
-        </button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <button type="button" 
+                  class="btn btn--fantasma btn-editar-cita" 
+                  data-id="${cita.id}" 
+                  style="padding: 6px 14px; font-size: 12px; border-radius: 9999px;">
+            Modificar Cita
+          </button>
+          <button type="button" 
+                  class="btn btn--peligro btn-cancelar-cita" 
+                  data-id="${cita.id}" 
+                  style="padding: 6px 14px; font-size: 12px; border-radius: 9999px;">
+            Cancelar cita
+          </button>
+        </div>
       `;
     } else if (estado === 'completada') {
-      accionHtml = `
-        <button type="button" class="btn btn--fantasma btn-informe-cita" data-id="${cita.id}" style="padding: 6px 14px; font-size: 12px;">
-          Descargar PDF & DICOM
-        </button>
-      `;
+      if (cita.tieneInforme) {
+        accionHtml = `
+          <button type="button" 
+                  class="btn btn--primario btn-informe-cita" 
+                  data-id="${cita.id}" 
+                  style="padding: 6px 14px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Descargar PDF & DICOM
+          </button>
+        `;
+      } else {
+        accionHtml = `
+          <span class="badge-informe-redaccion" title="El informe diagnóstico se encuentra en redacción por el especialista">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            Informe en redacción
+          </span>
+        `;
+      }
     } else if (estado === 'confirmada') {
       accionHtml = `<span style="font-size: 13px; color: var(--color-fog);">Pendiente de realización</span>`;
     } else if (estado === 'cancelada') {
@@ -397,9 +807,10 @@ function renderizarTablaCitas(citas) {
     return `
       <tr>
         <td>${fechaHoraHtml}</td>
+        <td>${pacienteHtml}</td>
         <td>${estudioNombre}</td>
         <td class="text-center">${botonPreparacionHtml}</td>
-        <td>${medico}</td>
+        <td>${medicoHtml}</td>
         <td>${badgeHtml}</td>
         <td>${accionHtml}</td>
       </tr>
@@ -411,11 +822,12 @@ function renderizarTablaCitas(citas) {
       <thead>
         <tr>
           <th>Fecha y Hora</th>
+          <th>PACIENTE / DESTINATARIO</th>
           <th>Estudio Solicitado</th>
           <th class="text-center">PREPARACIÓN</th>
-          <th>Médico Radiólogo</th>
+          <th>MÉDICO RADIÓLOGO</th>
           <th>Estado</th>
-          <th>Informe Diagnóstico</th>
+          <th>INFORME DIAGNÓSTICO</th>
         </tr>
       </thead>
       <tbody>
@@ -426,28 +838,25 @@ function renderizarTablaCitas(citas) {
 }
 
 /**
- * Actualiza las tarjetas superiores de métricas (Próxima cita programada e informes)
- * con base en las citas devueltas por la consulta a Firestore.
+ * Actualiza las tarjetas superiores de métricas (Próxima cita programada e informes disponibles).
  * @param {Array<object>} citas
  */
 function actualizarMetricas(citas) {
-  // Próximas citas programadas activas (pendientes o confirmadas)
   const citasProgramadas = citas.filter((c) => {
     const est = (c.estado || '').toLowerCase();
     return est === 'confirmada' || est === 'pendiente';
   });
 
-  // Informes disponibles (estudios completados)
-  const citasCompletadas = citas.filter((c) => {
+  const citasConInforme = citas.filter((c) => {
     const est = (c.estado || '').toLowerCase();
-    return est === 'completada';
+    return est === 'completada' && c.tieneInforme === true;
   });
 
   if (statProximaCita) {
     statProximaCita.textContent = citasProgramadas.length.toString();
   }
   if (statInformes) {
-    statInformes.textContent = citasCompletadas.length.toString();
+    statInformes.textContent = citasConInforme.length.toString();
   }
 }
 
@@ -463,7 +872,6 @@ async function cargarCitasUsuario(uid) {
   renderizarEstadoCarga();
 
   try {
-    // Sincronizar catálogo de estudios si no ha sido precargado
     if (!catalogoEstudios || catalogoEstudios.length === 0) {
       try {
         catalogoEstudios = await obtenerEstudios();
@@ -472,24 +880,34 @@ async function cargarCitasUsuario(uid) {
       }
     }
 
-    const citas = await obtenerCitasPorUsuario(uid);
+    // Consulta ordenada cronológicamente de citas del paciente (sin filtrar por DUI ni nombre)
+    const citas = await obtenerMisCitas(uid);
 
-    // Ordenar de forma descendente (citas más recientes primero)
-    citas.sort((a, b) => {
-      const fechaA = a.agenda?.fecha || '';
-      const fechaB = b.agenda?.fecha || '';
-      if (fechaA && fechaB && fechaA !== fechaB) {
-        return fechaB.localeCompare(fechaA);
-      }
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
+    // Para citas completadas, verificar la disponibilidad del informe en la colección 'informes'
+    await Promise.all(
+      citas.map(async (c) => {
+        const est = (c.estado || '').toLowerCase();
+        if (est === 'completada') {
+          if (c.tieneInforme === undefined) {
+            try {
+              const inf = await obtenerInformePorCita(c.id);
+              c.tieneInforme = Boolean(inf && inf.dataBase64);
+              if (inf) {
+                c._informeData = inf;
+              }
+            } catch (_) {
+              c.tieneInforme = false;
+            }
+          }
+        }
+      })
+    );
+
+    citasCache = citas;
 
     // Actualizar métricas del panel superior
     actualizarMetricas(citas);
 
-    // Renderizar según el número de registros devueltos
     if (citas.length === 0) {
       renderizarEstadoVacio();
     } else {
@@ -512,43 +930,96 @@ async function cargarCitasUsuario(uid) {
   }
 }
 
-// Delegación de eventos para botones interactivos en la tabla (cancelar e informe)
+// Delegación de eventos para botones interactivos en la tabla (editar, cancelar e informe)
 if (historialCitasContenedor) {
   historialCitasContenedor.addEventListener('click', async (e) => {
-    // 1. Cancelar cita
+    // 1. Modificar cita pendiente
+    const btnEditar = e.target.closest('.btn-editar-cita');
+    if (btnEditar) {
+      const citaId = btnEditar.dataset.id;
+      if (!citaId) return;
+
+      const cita = citasCache.find(c => c.id === citaId);
+      if (cita) {
+        abrirModalEditar(cita);
+      }
+      return;
+    }
+
+    // 2. Cancelar cita mediante modal de confirmación accesible
     const btnCancelar = e.target.closest('.btn-cancelar-cita');
     if (btnCancelar) {
       const citaId = btnCancelar.dataset.id;
       if (!citaId) return;
 
-      const confirmar = window.confirm("¿Está seguro de que desea cancelar esta solicitud de cita médica?");
-      if (!confirmar) return;
+      const confirmado = await mostrarModalConfirmacion({
+        titulo: '¿Cancelar solicitud de cita?',
+        mensaje: 'Esta acción cancelará su solicitud de estudio radiológico. La cita pasará a estado cancelada de forma inmediata.',
+        textoConfirmar: 'Sí, cancelar cita',
+        textoCancelar: 'Mantener cita'
+      });
+
+      if (!confirmado) return;
 
       try {
-        btnCancelar.disabled = true;
-        btnCancelar.textContent = "Cancelando...";
-        await cancelarCita(citaId);
+        setBotonCargando(btnCancelar, true, 'Cancelando...');
+        await cancelarCitaPaciente(citaId);
+        mostrarToast('La cita ha sido cancelada exitosamente.', 'exito');
+
         if (usuarioAuthActual) {
           await cargarCitasUsuario(usuarioAuthActual.uid);
         }
       } catch (error) {
         console.error("Error al cancelar la cita:", error);
-        alert("No se pudo cancelar la cita. Por favor intente nuevamente.");
-        btnCancelar.disabled = false;
-        btnCancelar.textContent = "Cancelar cita";
+        setBotonCargando(btnCancelar, false);
+        mostrarToast(error.message || 'No se pudo cancelar la cita. Por favor intente nuevamente.', 'error');
       }
       return;
     }
 
-    // 2. Descargar informe simulado
+    // 3. Descarga real de Informe Diagnóstico (PDF / DICOM)
     const btnInforme = e.target.closest('.btn-informe-cita');
     if (btnInforme) {
       e.preventDefault();
-      alert("Accediendo al expediente radiológico PACS/DICOM. Generando reporte de diagnóstico médico e imágenes asociadas...");
+      const citaId = btnInforme.dataset.id;
+      if (!citaId) return;
+
+      const textoOriginal = btnInforme.innerHTML;
+      try {
+        setBotonCargando(btnInforme, true, 'Descargando...');
+
+        const cita = citasCache.find(c => c.id === citaId);
+        let informe = cita?._informeData;
+        if (!informe || !informe.dataBase64) {
+          informe = await obtenerInformePorCita(citaId);
+          if (cita && informe) {
+            cita._informeData = informe;
+            cita.tieneInforme = true;
+          }
+        }
+
+        if (!informe || !informe.dataBase64) {
+          mostrarToast('El archivo del informe aún no se encuentra disponible para descarga.', 'alerta');
+          return;
+        }
+
+        descargarArchivoBase64(
+          informe.dataBase64,
+          informe.nombreArchivo || `Informe_${citaId}.pdf`,
+          informe.tipoArchivo || 'application/pdf'
+        );
+        mostrarToast('Descarga iniciada exitosamente.', 'exito');
+
+      } catch (error) {
+        console.error("Error al descargar informe diagnóstico:", error);
+        mostrarToast('No fue posible descargar el archivo. Por favor intente nuevamente.', 'error');
+      } finally {
+        setBotonCargando(btnInforme, false, '', textoOriginal);
+      }
       return;
     }
 
-    // 3. Ver preparación médica en modal interactivo
+    // 4. Ver preparación médica en modal interactivo
     const btnPrep = e.target.closest('.btn-info-preparacion');
     if (btnPrep) {
       e.preventDefault();

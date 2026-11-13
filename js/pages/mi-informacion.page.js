@@ -128,6 +128,19 @@ function precargarCampos(datos, authUser) {
   }
 }
 
+// Precarga inmediata de cortesía si existe rc_user_cache para eliminar parpadeo del formulario
+try {
+  const cacheInicial = localStorage.getItem('rc_user_cache');
+  if (cacheInicial) {
+    const perfilInicial = JSON.parse(cacheInicial);
+    if (perfilInicial && (perfilInicial.nombre || perfilInicial.apellido)) {
+      precargarCampos(perfilInicial, perfilInicial);
+    }
+  }
+} catch (e) {
+  // Ignorar errores en precarga temprana de caché
+}
+
 /* ==========================================================================
    CONTROL DE SESIÓN Y CARGA DESDE FIRESTORE
    ========================================================================== */
@@ -258,6 +271,23 @@ if (formInfo) {
 
       // Actualizar la caché de usuario en memoria para sincronización con navbar y citas
       actualizarCacheUsuario(datosActualizados);
+
+      // Sincronizar y actualizar el objeto de negocio rc_user_cache en localStorage con el nuevo nombre y apellido
+      try {
+        const cacheRaw = localStorage.getItem('rc_user_cache');
+        const prevCache = cacheRaw ? JSON.parse(cacheRaw) : {};
+        const perfilActualizado = {
+          uid: usuarioAuthActual.uid,
+          nombre,
+          apellido,
+          email: usuarioAuthActual.email || prevCache.email || '',
+          rol: prevCache.rol || 'paciente',
+          ultimaActividad: new Date().toISOString()
+        };
+        localStorage.setItem('rc_user_cache', JSON.stringify(perfilActualizado));
+      } catch (storageErr) {
+        console.warn("Aviso: No se pudo actualizar rc_user_cache en localStorage:", storageErr);
+      }
 
       // Mantener sincronizado el displayName en Firebase Auth
       try {

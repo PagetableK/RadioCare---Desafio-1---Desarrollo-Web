@@ -88,7 +88,7 @@
           <div id="alerta-info" aria-live="polite"></div>
 
           <form id="form-mi-informacion" novalidate>
-            <div class="campo-grupo campo-grupo--2col" style="margin-bottom: 18px;">
+            <div class="campo-grupo campo-grupo--2col">
               <div class="campo">
                 <label for="info-nombre" class="label">Nombres <span class="requerido" aria-hidden="true">*</span></label>
                 <input type="text" id="info-nombre" name="nombre" class="input" placeholder="Ej. María Elena" required minlength="2" maxlength="60" autocomplete="given-name">
@@ -101,7 +101,7 @@
               </div>
             </div>
 
-            <div class="campo-grupo campo-grupo--2col" style="margin-bottom: 18px;">
+            <div class="campo-grupo campo-grupo--2col">
               <div class="campo">
                 <label for="info-dui" class="label">DUI o pasaporte <span class="requerido" aria-hidden="true">*</span></label>
                 <input type="text" id="info-dui" name="dui" class="input" placeholder="00000000-0" required pattern="(\d{8}-\d|\d{9}|[A-Z]{1,2}\d{6,9})" maxlength="20" autocomplete="off" aria-describedby="info-dui-ayuda">
@@ -114,7 +114,7 @@
               </div>
             </div>
 
-            <div class="campo-grupo campo-grupo--2col" style="margin-bottom: 18px;">
+            <div class="campo-grupo campo-grupo--2col">
               <div class="campo">
                 <label for="info-sexo" class="label">Sexo biológico <span class="requerido" aria-hidden="true">*</span></label>
                 <select id="info-sexo" name="sexo" class="select" required aria-describedby="info-sexo-ayuda">
@@ -131,15 +131,15 @@
               </div>
             </div>
 
-            <div class="campo" style="margin-bottom: 24px;">
+            <div class="campo">
               <label for="info-email" class="label">Correo electrónico (Cuenta activa)</label>
-              <input type="email" id="info-email" name="email" class="input" disabled readonly aria-describedby="info-email-ayuda" style="background-color: rgba(22, 22, 92, 0.45); border-color: rgba(72, 70, 198, 0.4); color: var(--color-ash); cursor: not-allowed;">
+              <input type="email" id="info-email" name="email" class="input" disabled readonly aria-describedby="info-email-ayuda">
               <span class="ayuda" id="info-email-ayuda">El correo electrónico está vinculado a su cuenta de acceso institucional y recepción de informes DICOM. No puede modificarse directamente.</span>
             </div>
 
-            <div style="display: flex; gap: 14px; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-top: 28px;">
-              <a href="mis-citas.html" class="btn btn--fantasma" style="padding: 14px 24px; font-size: 15px;">Cancelar</a>
-              <button type="submit" id="btn-guardar-info" class="btn btn--primario" style="padding: 14px 32px; font-size: 16px;">
+            <div class="form-acciones">
+              <a href="mis-citas.html" class="btn btn--fantasma">Cancelar</a>
+              <button type="submit" id="btn-guardar-info" class="btn btn--primario">
                 Guardar cambios
               </button>
             </div>

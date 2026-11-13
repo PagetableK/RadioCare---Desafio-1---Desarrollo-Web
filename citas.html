@@ -56,20 +56,12 @@
 
                     <!-- Estado de carga mientras se verifica la sesión -->
                     <div id="citas-loading" class="panel-auth-loading">
-                        <span class="rc-spinner" aria-hidden="true" style="
-                            display: inline-block;
-                            width: 40px;
-                            height: 40px;
-                            border: 3px solid rgba(0, 177, 255, 0.2);
-                            border-top-color: var(--color-clinical-cyan);
-                            border-radius: 50%;
-                            animation: rcSpin 0.7s linear infinite;
-                        "></span>
+                        <span class="rc-spinner" aria-hidden="true"></span>
                         <p>Verificando estado de sesión...</p>
                     </div>
 
                     <!-- Contenedor destacado (card) para usuarios sin sesión iniciada -->
-                    <div id="citas-auth-requerido" class="card-auth-requerido oculto" hidden style="display: none;">
+                    <div id="citas-auth-requerido" class="card-auth-requerido oculto" hidden>
                         <div class="card-auth-requerido__icono">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -91,7 +83,7 @@
                     </div>
 
                     <!-- Formulario de agendamiento (visible solo para usuarios autenticados) -->
-                    <form class="citas-form oculto" id="citas-form" action="" method="post" novalidate hidden style="display: none;">
+                    <form class="citas-form oculto" id="citas-form" action="" method="post" novalidate hidden>
 
                         <div id="alerta-citas" aria-live="polite"></div>
 
@@ -525,7 +517,7 @@
             <div class="footer__flex">
                 <div>
                     <a class="logo" href="index.html">Radio<span>Care</span></a>
-                    <p style="margin-top:12px;max-width:34ch">Clínica de diagnóstico radiológico con entrega digital de
+                    <p class="footer__descripcion">Clínica de diagnóstico radiológico con entrega digital de
                         resultados
                         vía PACS/DICOM.</p>
                 </div>

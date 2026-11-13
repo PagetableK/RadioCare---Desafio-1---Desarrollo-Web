@@ -196,6 +196,62 @@
   border: 1px solid #ff4d6d;
 }
 
+/* Badges de Destinatario / Paciente (Personal vs Familiar) */
+.badge-destinatario {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+.badge-destinatario--familiar {
+  background: rgba(177, 166, 246, 0.15);
+  color: var(--color-lilac-mist);
+  border: 1px solid rgba(177, 166, 246, 0.35);
+}
+
+.badge-destinatario--personal {
+  background: rgba(0, 177, 255, 0.12);
+  color: var(--color-clinical-cyan);
+  border: 1px solid rgba(0, 177, 255, 0.35);
+}
+
+/* Badge y estado de Informe en Redacción */
+.badge-informe-redaccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-fog);
+  background: rgba(148, 148, 169, 0.1);
+  border: 1px dashed rgba(148, 148, 169, 0.35);
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* Médico Radiólogo Asignado Destacado y Pendiente */
+.medico-destacado {
+  color: var(--color-mint-vital);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.medico-pendiente {
+  color: var(--color-fog);
+  font-size: 13px;
+  font-style: italic;
+}
+
 /* Estado vacío de citas (Empty State) */
 .panel-empty-state {
   display: flex;
@@ -452,4 +508,652 @@
   border-radius: 9999px;
   cursor: pointer;
 }
+
+/* =========================================================
+   COLUMNA PACIENTE Y BOTÓN DE FICHA CLÍNICA
+   ========================================================= */
+
+.paciente-celda-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paciente-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.paciente-nombre-linea {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-info-paciente {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 177, 255, 0.12);
+  border: 1.5px solid rgba(0, 177, 255, 0.45);
+  color: var(--color-clinical-cyan);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.btn-info-paciente:hover,
+.btn-info-paciente:focus-visible {
+  background: rgba(0, 177, 255, 0.28);
+  border-color: var(--color-clinical-cyan);
+  color: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 0 12px rgba(0, 177, 255, 0.35);
+}
+
+.btn-info-paciente:active {
+  transform: scale(0.95);
+}
+
+.btn-info-paciente svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* =========================================================
+   MODAL DE EXPEDIENTE / FICHA DEL PACIENTE (#modal-ficha-paciente)
+   ========================================================= */
+
+.modal-ficha-paciente {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-ficha-paciente.oculto,
+.modal-ficha-paciente[hidden] {
+  display: none !important;
+}
+
+.modal-ficha-paciente__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 36, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.modal-ficha-paciente__caja {
+  position: relative;
+  z-index: 10000;
+  background: linear-gradient(145deg, #201e61 0%, #161545 100%);
+  border: 1.5px solid var(--color-iris-border);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(64, 60, 213, 0.25);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: rcModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-ficha-paciente__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(72, 70, 198, 0.35);
+  flex-shrink: 0;
+}
+
+.modal-ficha-paciente__header-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-ficha-paciente__icono {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 177, 255, 0.15);
+  border: 1.5px solid rgba(0, 177, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-clinical-cyan);
+  flex-shrink: 0;
+}
+
+.modal-ficha-paciente__icono svg {
+  width: 22px;
+  height: 22px;
+}
+
+.modal-ficha-paciente__titulo {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-cloud-white);
+  margin: 0 0 2px 0;
+  letter-spacing: -0.01em;
+}
+
+.modal-ficha-paciente__subtitulo {
+  font-size: 13px;
+  color: var(--color-fog);
+  margin: 0;
+}
+
+.modal-ficha-paciente__cerrar {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-ash);
+  font-size: 18px;
+  line-height: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.modal-ficha-paciente__cerrar:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-cloud-white);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-ficha-paciente__cuerpo {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1 1 auto;
+}
+
+.ficha-bloque {
+  background: rgba(22, 22, 92, 0.45);
+  border: 1px solid rgba(72, 70, 198, 0.35);
+  border-radius: 16px;
+  padding: 16px 20px;
+}
+
+.ficha-bloque__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-clinical-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 14px 0;
+}
+
+.ficha-bloque__titulo svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ficha-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 16px;
+}
+
+.ficha-grid--identificacion {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+}
+
+@media (max-width: 580px) {
+  .ficha-grid--identificacion {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ficha-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ficha-item--full {
+  grid-column: 1 / -1;
+}
+
+.ficha-item__etiqueta {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-fog);
+  font-weight: 600;
+}
+
+.ficha-item__valor {
+  font-size: 13.5px;
+  color: var(--color-cloud-white);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.ficha-item__valor--texto {
+  margin: 2px 0 0 0;
+  line-height: 1.5;
+  color: var(--color-pearl);
+  background: rgba(10, 10, 36, 0.35);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(72, 70, 198, 0.2);
+  font-size: 13px;
+}
+
+.modal-ficha-paciente__footer {
+  padding: 14px 24px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(72, 70, 198, 0.25);
+  background: rgba(22, 22, 92, 0.5);
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   COLUMNA INFORME / ARCHIVOS (PDF & DICOM)
+   ========================================================= */
+
+.btn-subir-informe,
+.btn-ver-informe {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  outline: none;
+  font-family: inherit;
+}
+
+.btn-subir-informe svg,
+.btn-ver-informe svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.btn-subir-informe:disabled,
+.btn-ver-informe:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-informe-nuevo {
+  background: rgba(0, 177, 255, 0.12);
+  border: 1px solid rgba(0, 177, 255, 0.45);
+  color: var(--color-clinical-cyan);
+}
+
+.btn-informe-nuevo:hover:not(:disabled) {
+  background: rgba(0, 177, 255, 0.25);
+  border-color: var(--color-clinical-cyan);
+  color: #ffffff;
+}
+
+.btn-informe-actualizar {
+  background: rgba(0, 255, 170, 0.12);
+  border: 1px solid var(--color-mint-vital);
+  color: var(--color-mint-vital);
+}
+
+.btn-informe-actualizar:hover:not(:disabled) {
+  background: rgba(0, 255, 170, 0.22);
+  color: #ffffff;
+}
+
+.btn-ver-informe {
+  background: rgba(177, 166, 246, 0.12);
+  border: 1px solid rgba(177, 166, 246, 0.4);
+  color: var(--color-lilac-mist);
+}
+
+.btn-ver-informe:hover:not(:disabled) {
+  background: rgba(177, 166, 246, 0.25);
+  border-color: var(--color-lilac-mist);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(177, 166, 246, 0.25);
+}
+
+.informe-col-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.informe-botones-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.informe-nombre-archivo {
+  font-size: 11px;
+  color: var(--color-mint-vital);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  font-weight: 500;
+}
+
+.texto-disponible-completar {
+  font-size: 12px;
+  color: var(--color-fog);
+  font-style: italic;
+}
+
+/* =========================================================
+   ESTILOS EXCLUSIVOS DEL PANEL ADMINISTRATIVO (MIGRADOS DE HTML)
+   ========================================================= */
+
+/* Loader de verificación de sesión */
+#panel-auth-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 65vh;
+  text-align: center;
+  color: var(--color-ash);
+  font-size: 15px;
+}
+
+/* Barra de controles (búsqueda + filtros) */
+.panel-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.panel-controles__busqueda {
+  flex: 1 1 220px;
+  min-width: 180px;
+  position: relative;
+}
+
+.panel-controles__busqueda svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  stroke: var(--color-fog);
+  pointer-events: none;
+}
+
+.panel-input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  background: rgba(22, 22, 92, 0.6);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 12px;
+  color: var(--color-cloud-white);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.panel-input:focus {
+  border-color: var(--color-clinical-cyan);
+}
+
+.panel-input::placeholder {
+  color: var(--color-fog);
+}
+
+.panel-select {
+  padding: 10px 14px;
+  background: rgba(22, 22, 92, 0.6);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 12px;
+  color: var(--color-cloud-white);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 160px;
+}
+
+.panel-select:focus {
+  border-color: var(--color-clinical-cyan);
+}
+
+.panel-select option {
+  background: #1b1a55;
+  color: var(--color-cloud-white);
+}
+
+/* Select de acciones dentro de la tabla */
+.select-accion {
+  padding: 6px 10px;
+  background: rgba(22, 22, 92, 0.8);
+  border: 1px solid var(--color-iris-border);
+  border-radius: 8px;
+  color: var(--color-cloud-white);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s, opacity 0.2s;
+  max-width: 160px;
+}
+
+.select-accion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select-accion:focus {
+  border-color: var(--color-clinical-cyan);
+}
+
+.select-accion option {
+  background: #1b1a55;
+}
+
+/* Botón eliminar en tabla */
+.btn-eliminar-cita {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 77, 109, 0.12);
+  border: 1px solid #ff4d6d;
+  color: #ff8597;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.btn-eliminar-cita:hover {
+  background: rgba(255, 77, 109, 0.28);
+  color: #fff;
+}
+
+.btn-eliminar-cita svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Notificación toast de retroalimentación en panel */
+.rc-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9000;
+  padding: 12px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 340px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  animation: rcToastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.rc-toast--exito {
+  background: rgba(0, 255, 170, 0.18);
+  border: 1px solid var(--color-mint-vital);
+  color: var(--color-mint-vital);
+}
+
+.rc-toast--error {
+  background: rgba(255, 77, 109, 0.18);
+  border: 1px solid #ff4d6d;
+  color: #ffb3c1;
+}
+
+/* Modal de confirmación de eliminación */
+.modal-confirmacion {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-confirmacion.oculto {
+  display: none !important;
+}
+
+.modal-confirmacion__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 36, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-confirmacion__caja {
+  position: relative;
+  z-index: 10000;
+  background: linear-gradient(145deg, #201e61 0%, #161545 100%);
+  border: 1.5px solid #ff4d6d;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 28px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 20px rgba(255,77,109,0.2);
+  animation: rcModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rcModalIn {
+  from { opacity: 0; transform: scale(0.93) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-confirmacion__icono {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255,77,109,0.15);
+  border: 1.5px solid #ff4d6d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #ff8597;
+}
+
+.modal-confirmacion__icono svg {
+  width: 24px;
+  height: 24px;
+}
+
+.modal-confirmacion__titulo {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--color-cloud-white);
+}
+
+.modal-confirmacion__texto {
+  font-size: 14px;
+  color: var(--color-ash);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.modal-confirmacion__acciones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Nombre del paciente en la fila */
+.paciente-nombre { font-weight: 600; }
+.paciente-dui { font-size: 12px; color: var(--color-fog); display: block; margin-top: 2px; }
+
+/* Columna de acciones: stack de controles */
+.acciones-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 160px;
+}
+
+/* Métricas KPI */
+.metricas__flex {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 32px 0 40px 0;
+}
+
+.kpi-destacado .stat-tarjeta__valor { color: var(--color-clinical-cyan); }
+.kpi-alerta .stat-tarjeta__valor { color: #ffc425; }
+.kpi-info .stat-tarjeta__valor { color: var(--color-lilac-mist); }
+
+
 

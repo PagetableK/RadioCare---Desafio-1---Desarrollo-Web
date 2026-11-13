@@ -95,6 +95,8 @@
 .campo-grupo--2col {
     display: flex;
     flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
 }
 
 .campo-grupo--2col>.campo {
@@ -186,6 +188,26 @@
 .textarea:user-invalid {
     border-color: #ff6b8a;
     box-shadow: 0 0 0 3px rgba(255, 107, 138, 0.12);
+}
+
+/* estado deshabilitado / solo lectura */
+.input:disabled,
+.select:disabled,
+.textarea:disabled,
+.input[readonly] {
+    background-color: rgba(22, 22, 92, 0.45);
+    border-color: rgba(72, 70, 198, 0.4);
+    color: var(--color-ash);
+    cursor: not-allowed;
+}
+
+.form-acciones {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-top: 28px;
 }
 
 .campo:has(.input:user-invalid) .ayuda,

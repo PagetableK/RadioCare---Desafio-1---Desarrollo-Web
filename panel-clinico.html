@@ -7,304 +7,6 @@
   <title>Panel Clínico · Coordinación Radiológica | RadioCare</title>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/panel.css">
-
-  <!-- Ocultar el contenido principal hasta validar rol 'coordinador' (Anti-flicker) -->
-  <style>
-    /* =========================================================
-       ESTILOS EXCLUSIVOS DEL PANEL ADMINISTRATIVO
-       ========================================================= */
-
-    /* Loader de verificación de sesión */
-    #panel-auth-loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      min-height: 65vh;
-      text-align: center;
-      color: var(--color-ash);
-      font-size: 15px;
-    }
-
-    /* Spinner de carga */
-    .rc-spinner {
-      display: inline-block;
-      width: 36px;
-      height: 36px;
-      border: 3px solid rgba(0, 177, 255, 0.2);
-      border-top-color: var(--color-clinical-cyan);
-      border-radius: 50%;
-      animation: rcSpin 0.75s linear infinite;
-    }
-
-    @keyframes rcSpin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Barra de controles (búsqueda + filtros) */
-    .panel-controles {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .panel-controles__busqueda {
-      flex: 1 1 220px;
-      min-width: 180px;
-      position: relative;
-    }
-
-    .panel-controles__busqueda svg {
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      stroke: var(--color-fog);
-      pointer-events: none;
-    }
-
-    .panel-input {
-      width: 100%;
-      padding: 10px 14px 10px 40px;
-      background: rgba(22, 22, 92, 0.6);
-      border: 1px solid var(--color-iris-border);
-      border-radius: 12px;
-      color: var(--color-cloud-white);
-      font-family: inherit;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .panel-input:focus {
-      border-color: var(--color-clinical-cyan);
-    }
-
-    .panel-input::placeholder {
-      color: var(--color-fog);
-    }
-
-    .panel-select {
-      padding: 10px 14px;
-      background: rgba(22, 22, 92, 0.6);
-      border: 1px solid var(--color-iris-border);
-      border-radius: 12px;
-      color: var(--color-cloud-white);
-      font-family: inherit;
-      font-size: 14px;
-      outline: none;
-      cursor: pointer;
-      transition: border-color 0.2s;
-      min-width: 160px;
-    }
-
-    .panel-select:focus {
-      border-color: var(--color-clinical-cyan);
-    }
-
-    .panel-select option {
-      background: #1b1a55;
-      color: var(--color-cloud-white);
-    }
-
-    /* Select de acciones dentro de la tabla */
-    .select-accion {
-      padding: 6px 10px;
-      background: rgba(22, 22, 92, 0.8);
-      border: 1px solid var(--color-iris-border);
-      border-radius: 8px;
-      color: var(--color-cloud-white);
-      font-family: inherit;
-      font-size: 12px;
-      outline: none;
-      cursor: pointer;
-      transition: border-color 0.2s, opacity 0.2s;
-      max-width: 160px;
-    }
-
-    .select-accion:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .select-accion:focus {
-      border-color: var(--color-clinical-cyan);
-    }
-
-    .select-accion option {
-      background: #1b1a55;
-    }
-
-    /* Botón eliminar en tabla */
-    .btn-eliminar-cita {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: rgba(255, 77, 109, 0.12);
-      border: 1px solid #ff4d6d;
-      color: #ff8597;
-      cursor: pointer;
-      transition: all 0.2s;
-      padding: 0;
-      flex-shrink: 0;
-    }
-
-    .btn-eliminar-cita:hover {
-      background: rgba(255, 77, 109, 0.28);
-      color: #fff;
-    }
-
-    .btn-eliminar-cita svg {
-      width: 15px;
-      height: 15px;
-    }
-
-    /* Notificación toast de retroalimentación */
-    .rc-toast {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      z-index: 9000;
-      padding: 12px 20px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 600;
-      max-width: 340px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      animation: rcToastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      pointer-events: none;
-    }
-
-    .rc-toast--exito {
-      background: rgba(0, 255, 170, 0.18);
-      border: 1px solid var(--color-mint-vital);
-      color: var(--color-mint-vital);
-    }
-
-    .rc-toast--error {
-      background: rgba(255, 77, 109, 0.18);
-      border: 1px solid #ff4d6d;
-      color: #ffb3c1;
-    }
-
-    @keyframes rcToastIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Modal de confirmación de eliminación */
-    .modal-confirmacion {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .modal-confirmacion.oculto {
-      display: none !important;
-    }
-
-    .modal-confirmacion__backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(10, 10, 36, 0.78);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-    }
-
-    .modal-confirmacion__caja {
-      position: relative;
-      z-index: 10000;
-      background: linear-gradient(145deg, #201e61 0%, #161545 100%);
-      border: 1.5px solid #ff4d6d;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 420px;
-      padding: 32px 28px;
-      text-align: center;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 20px rgba(255,77,109,0.2);
-      animation: rcModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes rcModalIn {
-      from { opacity: 0; transform: scale(0.93) translateY(10px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    .modal-confirmacion__icono {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: rgba(255,77,109,0.15);
-      border: 1.5px solid #ff4d6d;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16px;
-      color: #ff8597;
-    }
-
-    .modal-confirmacion__icono svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .modal-confirmacion__titulo {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: var(--color-cloud-white);
-    }
-
-    .modal-confirmacion__texto {
-      font-size: 14px;
-      color: var(--color-ash);
-      margin-bottom: 24px;
-      line-height: 1.6;
-    }
-
-    .modal-confirmacion__acciones {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-    }
-
-    /* Nombre del paciente en la fila */
-    .paciente-nombre { font-weight: 600; }
-    .paciente-dui { font-size: 12px; color: var(--color-fog); display: block; margin-top: 2px; }
-
-    /* Columna de acciones: stack de controles */
-    .acciones-celda {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: flex-start;
-      min-width: 160px;
-    }
-
-    /* Métricas KPI */
-    .metricas__flex {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin: 32px 0 40px 0;
-    }
-
-    .kpi-destacado .stat-tarjeta__valor { color: var(--color-clinical-cyan); }
-    .kpi-alerta .stat-tarjeta__valor { color: #ffc425; }
-    .kpi-info .stat-tarjeta__valor { color: var(--color-lilac-mist); }
-  </style>
 </head>
 
 <body>
@@ -431,13 +133,197 @@
 
           <!-- Contenedor dinámico de la tabla -->
           <div class="panel-tabla-wrap" id="tabla-citas-contenedor" aria-live="polite">
-            <!-- Renderizado dinámico por panel.page.js -->
+            <table class="panel-tabla" aria-label="Agenda de Pacientes y Procedimientos">
+              <thead>
+                <tr>
+                  <th>Fecha / Franja</th>
+                  <th>PACIENTE</th>
+                  <th>Estudio Radiológico</th>
+                  <th>Médico Radiólogo</th>
+                  <th>Estado</th>
+                  <th>ACCIONES RÁPIDAS</th>
+                  <th>INFORME / ARCHIVOS</th>
+                  <th style="text-align:center;">ELIMINAR</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Renderizado dinámico por panel.page.js -->
+              </tbody>
+            </table>
           </div>
         </div>
 
       </div>
     </section>
   </main>
+
+  <!-- Selector de archivo oculto para carga de informes diagnósticos (PDF / DICOM) -->
+  <input
+    type="file"
+    id="input-archivo-informe"
+    class="hidden"
+    accept=".pdf,.dcm,.jpg,.jpeg,.png"
+    hidden
+    aria-hidden="true"
+  >
+
+  <!-- ========================================================================
+       MODAL DE EXPEDIENTE / FICHA COMPLETA DEL PACIENTE (#modal-ficha-paciente)
+       ======================================================================== -->
+  <div
+    id="modal-ficha-paciente"
+    class="modal-ficha-paciente oculto"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-ficha-titulo"
+    hidden
+  >
+    <div class="modal-ficha-paciente__backdrop" id="modal-ficha-backdrop"></div>
+    <div class="modal-ficha-paciente__caja" role="document">
+      <!-- Header del modal -->
+      <div class="modal-ficha-paciente__header">
+        <div class="modal-ficha-paciente__header-info">
+          <div class="modal-ficha-paciente__icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div>
+            <h2 class="modal-ficha-paciente__titulo" id="modal-ficha-titulo">Ficha Clínica del Paciente</h2>
+            <p class="modal-ficha-paciente__subtitulo" id="modal-ficha-subtitulo">Expediente y detalles clínicos de la solicitud</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="modal-ficha-paciente__cerrar"
+          id="btn-cerrar-modal-ficha"
+          title="Cerrar ficha"
+          aria-label="Cerrar ficha del paciente"
+        >✕</button>
+      </div>
+
+      <!-- Cuerpo estructurado en 3 bloques claros -->
+      <div class="modal-ficha-paciente__cuerpo">
+
+        <!-- BLOQUE 1: Datos de Identificación -->
+        <section class="ficha-bloque">
+          <h3 class="ficha-bloque__titulo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            1. Datos de Identificación
+          </h3>
+          <div class="ficha-grid ficha-grid--identificacion">
+            <div class="ficha-item ficha-item--full">
+              <span class="ficha-item__etiqueta">Nombre completo</span>
+              <span class="ficha-item__valor" id="ficha-nombre">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">DUI o pasaporte</span>
+              <span class="ficha-item__valor" id="ficha-dui">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Fecha de nacimiento</span>
+              <span class="ficha-item__valor" id="ficha-nacimiento">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Sexo biológico</span>
+              <span class="ficha-item__valor" id="ficha-sexo">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">¿Podría estar embarazada?</span>
+              <span class="ficha-item__valor" id="ficha-embarazo">–</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- BLOQUE 2: Contacto y Orden Médica -->
+        <section class="ficha-bloque">
+          <h3 class="ficha-bloque__titulo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            2. Contacto y Orden Médica
+          </h3>
+          <div class="ficha-grid">
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Correo electrónico</span>
+              <span class="ficha-item__valor" id="ficha-email">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Teléfono / WhatsApp</span>
+              <span class="ficha-item__valor" id="ficha-telefono">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Médico que ordena el estudio</span>
+              <span class="ficha-item__valor" id="ficha-medico-ordena">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Modalidad de solicitud</span>
+              <span class="ficha-item__valor" id="ficha-modalidad">–</span>
+            </div>
+            <div class="ficha-item ficha-item--full">
+              <span class="ficha-item__etiqueta">¿Tiene orden médica escrita?</span>
+              <span class="ficha-item__valor" id="ficha-orden-medica">–</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- BLOQUE 3: Información Clínica Adicional -->
+        <section class="ficha-bloque">
+          <h3 class="ficha-bloque__titulo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            3. Información Clínica Adicional
+          </h3>
+          <div class="ficha-grid">
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Implantes metálicos o dispositivos</span>
+              <span class="ficha-item__valor" id="ficha-implantes">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Alergia a medios de contraste</span>
+              <span class="ficha-item__valor" id="ficha-alergia">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Enfermedad renal crónica</span>
+              <span class="ficha-item__valor" id="ficha-renal">–</span>
+            </div>
+            <div class="ficha-item">
+              <span class="ficha-item__etiqueta">Recordatorio por WhatsApp</span>
+              <span class="ficha-item__valor" id="ficha-recordatorio">–</span>
+            </div>
+            <div class="ficha-item ficha-item--full">
+              <span class="ficha-item__etiqueta">Notas / indicaciones médicas</span>
+              <p class="ficha-item__valor ficha-item__valor--texto" id="ficha-notas">–</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Footer con botón de cierre -->
+      <div class="modal-ficha-paciente__footer">
+        <button
+          type="button"
+          class="btn btn--fantasma"
+          id="btn-cerrar-modal-ficha-footer"
+          style="padding: 10px 24px; font-size: 14px; border-radius: 9999px;"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================================================
        MODAL DE CONFIRMACIÓN DE ELIMINACIÓN (Anti-eliminación accidental)

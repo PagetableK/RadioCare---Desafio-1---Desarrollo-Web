@@ -136,6 +136,17 @@ service cloud.firestore {
       allow write: if esCoordinador();
     }
 
+    // =========================================================================
+    // COLECCIÓN: doctores
+    // =========================================================================
+    match /doctores/{doctorId} {
+      /** LECTURA pública o autenticada para citas y visualización de catálogo */
+      allow read: if true;
+
+      /** ESCRITURA restringida: Solo el coordinador puede crear, actualizar o eliminar médicos */
+      allow write: if esCoordinador();
+    }
+
   }
 }
 

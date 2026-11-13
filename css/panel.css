@@ -987,15 +987,27 @@
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s, opacity 0.2s;
-  max-width: 160px;
+  width: 100%;
+  max-width: 165px;
+  box-sizing: border-box;
 }
 
 .select-accion:disabled {
-  opacity: 0.5;
+  opacity: 0.42;
   cursor: not-allowed;
+  border-color: var(--color-iris-border);
+  box-shadow: none;
 }
 
-.select-accion:focus {
+.select-accion:disabled:hover,
+.select-accion:disabled:focus {
+  border-color: var(--color-iris-border);
+  box-shadow: none;
+  outline: none;
+  transform: none;
+}
+
+.select-accion:focus:not(:disabled) {
   border-color: var(--color-clinical-cyan);
 }
 
@@ -1003,31 +1015,181 @@
   background: #1b1a55;
 }
 
+/* Contenedor de botones de acción en tabla (Editar + Eliminar) */
+.tabla-acciones-botones {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 /* Botón eliminar en tabla */
 .btn-eliminar-cita {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   background: rgba(255, 77, 109, 0.12);
   border: 1px solid #ff4d6d;
   color: #ff8597;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0;
   flex-shrink: 0;
 }
 
-.btn-eliminar-cita:hover {
+.btn-eliminar-cita:hover:not(:disabled),
+.btn-eliminar-cita:focus-visible:not(:disabled) {
   background: rgba(255, 77, 109, 0.28);
+  border-color: #ff8597;
   color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 77, 109, 0.25);
+  outline: none;
+}
+
+.btn-eliminar-cita:disabled,
+.btn-eliminar-cita[disabled] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-eliminar-cita:disabled:hover,
+.btn-eliminar-cita:disabled:focus-visible {
+  background: rgba(255, 77, 109, 0.12);
+  border-color: #ff4d6d;
+  color: #ff8597;
+  transform: none;
+  box-shadow: none;
+  outline: none;
 }
 
 .btn-eliminar-cita svg {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Botón de edición de cita (lápiz SVG) */
+.btn-editar-cita-panel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(177, 166, 246, 0.12);
+  border: 1px solid rgba(177, 166, 246, 0.35);
+  color: var(--color-lilac-mist);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.btn-editar-cita-panel:hover:not(:disabled),
+.btn-editar-cita-panel:focus-visible:not(:disabled) {
+  background: rgba(177, 166, 246, 0.25);
+  border-color: var(--color-lilac-mist);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(177, 166, 246, 0.25);
+  outline: none;
+}
+
+.btn-editar-cita-panel:disabled,
+.btn-editar-cita-panel[disabled] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-editar-cita-panel:disabled:hover,
+.btn-editar-cita-panel:disabled:focus-visible {
+  background: rgba(177, 166, 246, 0.12);
+  border-color: rgba(177, 166, 246, 0.35);
+  color: var(--color-lilac-mist);
+  transform: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.btn-editar-cita-panel svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* =========================================================
+   REGLAS DE INTEGRIDAD CLÍNICA - CONTROLES BLOQUEADOS EN TABLA
+   ========================================================= */
+.panel-tabla select:disabled,
+.panel-tabla button:disabled,
+.panel-tabla .select-accion:disabled,
+.panel-tabla .btn-editar-cita-panel:disabled,
+.panel-tabla .btn-eliminar-cita:disabled {
+  opacity: 0.42 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.panel-tabla select:disabled:hover,
+.panel-tabla select:disabled:focus,
+.panel-tabla button:disabled:hover,
+.panel-tabla button:disabled:focus,
+.panel-tabla .select-accion:disabled:hover,
+.panel-tabla .select-accion:disabled:focus,
+.panel-tabla .btn-editar-cita-panel:disabled:hover,
+.panel-tabla .btn-editar-cita-panel:disabled:focus-visible,
+.panel-tabla .btn-eliminar-cita:disabled:hover,
+.panel-tabla .btn-eliminar-cita:disabled:focus-visible {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* Botones de acción para el CRUD de doctores */
+.btn-doctor-accion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  border: 1px solid transparent;
+}
+
+.btn-doctor-editar {
+  background: rgba(0, 177, 255, 0.12);
+  border-color: rgba(0, 177, 255, 0.4);
+  color: var(--color-clinical-cyan);
+}
+
+.btn-doctor-editar:hover {
+  background: rgba(0, 177, 255, 0.25);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.btn-doctor-eliminar {
+  background: rgba(255, 77, 109, 0.12);
+  border-color: rgba(255, 77, 109, 0.4);
+  color: #ff8597;
+}
+
+.btn-doctor-eliminar:hover {
+  background: rgba(255, 77, 109, 0.25);
+  color: #ffffff;
+  transform: scale(1.08);
 }
 
 /* Notificación toast de retroalimentación en panel */
@@ -1142,13 +1304,13 @@
 .paciente-nombre { font-weight: 600; }
 .paciente-dui { font-size: 12px; color: var(--color-fog); display: block; margin-top: 2px; }
 
-/* Columna de acciones: stack de controles */
+/* Columna de acciones rápidas: stack de selectores */
 .acciones-celda {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  align-items: flex-start;
-  min-width: 160px;
+  align-items: stretch;
+  min-width: 165px;
 }
 
 /* Métricas KPI */

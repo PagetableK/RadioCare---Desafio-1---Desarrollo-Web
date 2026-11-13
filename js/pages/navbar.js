@@ -15,6 +15,22 @@ function asegurarEstilosDropdown() {
 }
 
 /**
+ * Evita que el enlace de Panel Clínico aparezca duplicado arriba y abajo de la línea en móvil.
+ * Si el usuario es coordinador o la página ya cuenta con un enlace estático a panel-clinico.html,
+ * se asegura de que el elemento <li> principal posea la clase 'rc-nav-item--panel-clinico'
+ * para que en vista móvil se oculte arriba y se mantenga únicamente en las opciones de sesión.
+ */
+function sincronizarEnlacesRol(rol = '') {
+  const navLista = document.querySelector('.nav__lista');
+  if (!navLista) return;
+
+  const enlacePanelEstatico = navLista.querySelector('li:not(#nav-auth-container) a[href*="panel-clinico.html"]');
+  if (enlacePanelEstatico && enlacePanelEstatico.closest('li')) {
+    enlacePanelEstatico.closest('li').classList.add('rc-nav-item--panel-clinico');
+  }
+}
+
+/**
  * Localiza o crea el contenedor del ítem de autenticación en la barra de navegación.
  * @returns {HTMLElement | null}
  */
@@ -69,13 +85,15 @@ function renderizarEstadoSinSesion(container) {
 function renderizarEstadoConSesion(container, authUser, userData) {
   if (!container) return;
 
+  const rol = (userData?.rol || 'paciente').toLowerCase();
+  sincronizarEnlacesRol(rol);
+
   const nombreCompleto = `${userData?.nombre || ''} ${userData?.apellido || ''}`.trim() || 
                          authUser?.displayName || 
                          (authUser?.email ? authUser.email.split('@')[0] : 'Usuario');
 
   const inicial = (userData?.nombre?.[0] || authUser?.displayName?.[0] || authUser?.email?.[0] || 'U').toUpperCase();
   const email = userData?.email || authUser?.email || '';
-  const rol = (userData?.rol || 'paciente').toLowerCase();
 
   // Configuración de los enlaces condicionales según el rol del usuario
   let enlacesRolHtml = '';
@@ -249,6 +267,16 @@ function renderizarEstadoConSesion(container, authUser, userData) {
       }
     });
   }
+
+  // Cerrar el menú hamburguesa móvil si el usuario toca cualquier opción de sesión
+  dropdown.querySelectorAll('.rc-dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const menuToggle = document.getElementById('menu');
+      if (menuToggle && menuToggle.checked) {
+        menuToggle.checked = false;
+      }
+    });
+  });
 }
 
 /**
@@ -298,6 +326,7 @@ export async function revalidarSesion() {
  */
 function iniciarNavbar() {
   asegurarEstilosDropdown();
+  sincronizarEnlacesRol();
   const contenedor = obtenerContenedorAuth();
 
   // 1. Si existe rc_user_cache en localStorage, pre-renderizar de inmediato el avatar circular
@@ -330,6 +359,7 @@ function iniciarNavbar() {
 const contenedorInmediato = obtenerContenedorAuth();
 if (contenedorInmediato) {
   asegurarEstilosDropdown();
+  sincronizarEnlacesRol();
   prerenderizarDesdeCache(contenedorInmediato);
 }
 

@@ -236,26 +236,54 @@ h3 {
         flex-direction: column;
         align-items: stretch;
         gap: 14px;
-        padding: 16px;
+        padding: 20px 18px 24px;
         background: var(--color-iris-shadow);
         border: 1px solid var(--color-iris-border);
         border-radius: 24px;
+        box-shadow: 0 16px 36px rgba(10, 10, 45, 0.65);
+        max-height: 85vh;
+        overflow-y: auto;
+        box-sizing: border-box;
     }
 
     .nav__toggle:checked~.nav__lista {
         display: flex;
     }
 
-    .nav__lista a {
-        padding: 12px 12px;
+    .nav__lista > li {
+        width: 100%;
+    }
+
+    .nav__lista > li > a {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--color-cloud-white);
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .nav__lista > li > a:hover,
+    .nav__lista > li > a:focus-visible {
+        background: var(--color-iris-pulse);
+        color: var(--color-clinical-cyan);
     }
 
     .nav__lista .btn {
-        margin: 8px 0 0;
+        margin: 4px 0 0;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
     }
 
     .nav__lista a[aria-current="page"] {
-        background: none;
+        background: rgba(83, 80, 204, 0.35);
+        color: var(--color-clinical-cyan);
+        font-weight: 600;
     }
 }
 
@@ -696,68 +724,9 @@ h3 {
     stroke: #ffa4b2;
 }
 
-@media (max-width: 860px) {
-    .nav__lista {
-        height: auto !important;
-        max-height: 85vh !important;
-        overflow-y: auto !important;
-        padding-bottom: 20px !important;
-    }
-
-    #nav-auth-container {
-        width: 100% !important;
-        margin-top: 8px !important;
-        padding-top: 12px !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-    }
-
-    .rc-avatar-wrapper {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        width: 100% !important;
-    }
-
-    /* Oculto de verdad (sin ocupar espacio vacío) cuando está cerrado */
-    #rc-avatar-dropdown.rc-avatar-dropdown {
-        position: static !important;
-        display: none !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        margin-top: 12px !important;
-        padding: 14px 16px !important; /* Mantiene el aire interno del texto */
-        box-sizing: border-box !important;
-        background: rgba(14, 14, 52, 0.75) !important;
-        border: 1px solid var(--color-iris-border) !important;
-        border-radius: 16px !important;
-        box-shadow: none !important;
-        transform: none !important;
-    }
-
-    /* Solo ocupa espacio cuando el usuario toca la inicial (activo) */
-    #rc-avatar-dropdown.rc-avatar-dropdown.rc-dropdown--activo {
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    /* Evita que las líneas divisorias se salgan por los bordes izquierdo y derecho */
-    .rc-dropdown-divider {
-        margin: 8px 0 !important;
-        width: 100% !important;
-    }
-
-    /* Evita que correos largos desborden en pantallas de 320px */
-    .rc-dropdown-email {
-        word-break: break-all !important;
-    }
-}
-
 /* =========================================================
-   PARCHE DEFINITIVO: FOOTER, LOGO PNG Y MENÚ MÓVIL
+   FOOTER SIEMPRE AL FONDO (Aplica a todas las páginas del sitio)
    ========================================================= */
-
-/* 1. FOOTER SIEMPRE AL FONDO (Aplica a todas las páginas del sitio) */
 body {
     display: flex;
     flex-direction: column;
@@ -775,38 +744,154 @@ main#contenido {
     flex-shrink: 0;
 }
 
-/* 2. REPARAR EL CORTE DEL MENÚ MÓVIL (Y EL AVATAR DESPLEGABLE) */
+/* =========================================================
+   MENÚ MÓVIL RESPONSIVE: SESIÓN PLANA INTEGRADA
+   ========================================================= */
 @media (max-width: 860px) {
-    .nav__lista {
-        /* Permite que la caja azul crezca dinámicamente sin cortar el menú del avatar */
-        height: auto !important;
-        max-height: 85vh !important;
-        overflow-y: auto !important;
-        padding-bottom: 32px !important;
+    /* 1. Evitar que Panel Clínico se duplique arriba y abajo de la línea */
+    .rc-nav-item--panel-clinico,
+    .nav__lista > li:has(> a[href*="panel-clinico.html"]:not(.rc-dropdown-item)) {
+        display: none !important;
     }
 
+    /* 2. Línea divisoria de sesión integrada */
     #nav-auth-container {
         width: 100% !important;
-        margin-top: 16px !important;
-        padding-top: 16px !important;
+        margin-top: 6px !important;
+        padding-top: 14px !important;
         border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 3. Ocultar avatar circular con la inicial en móvil */
+    .rc-avatar-btn {
+        display: none !important;
     }
 
     .rc-avatar-wrapper {
         display: flex !important;
         flex-direction: column !important;
-        align-items: flex-start !important;
+        align-items: stretch !important;
         width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    /* Anula la flotación absoluta del submenú para que empuje la caja azul en móvil */
+    /* 4. Opciones de sesión integradas y planas (elimina tarjeta, fondo oscuro y borde) */
+    #rc-avatar-dropdown.rc-avatar-dropdown,
     .rc-avatar-dropdown {
         position: static !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
         width: 100% !important;
-        box-shadow: none !important;
-        background: transparent !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
         padding: 0 !important;
-        margin-top: 16px !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
         transform: none !important;
+        pointer-events: auto !important;
+    }
+
+    /* 5. Ocultar cabecera anidada ("CUENTA ACTIVA", nombre, correo) en móvil */
+    .rc-dropdown-header {
+        display: none !important;
+    }
+
+    /* 6. Ocultar divisores internos de la tarjeta */
+    .rc-dropdown-divider {
+        display: none !important;
+    }
+
+    /* 7. Ítems planos de opciones de sesión, alineados con el resto del menú */
+    .rc-dropdown-item {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 12px 16px !important;
+        border-radius: 12px !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        color: var(--color-cloud-white) !important;
+        background: transparent !important;
+        border: none !important;
+        text-align: left !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+        transition: background-color 0.2s, color 0.2s !important;
+    }
+
+    .rc-dropdown-item svg {
+        width: 20px !important;
+        height: 20px !important;
+        flex-shrink: 0 !important;
+        stroke: var(--color-lilac-mist, #b1a6f6) !important;
+        transition: stroke 0.2s !important;
+    }
+
+    .rc-dropdown-item:hover,
+    .rc-dropdown-item:focus-visible,
+    .rc-dropdown-item:active {
+        background: var(--color-iris-pulse) !important;
+        color: var(--color-clinical-cyan) !important;
+        transform: none !important;
+    }
+
+    .rc-dropdown-item:hover svg,
+    .rc-dropdown-item:focus-visible svg,
+    .rc-dropdown-item:active svg {
+        stroke: var(--color-clinical-cyan) !important;
+        transform: none !important;
+    }
+
+    .rc-dropdown-item-meta {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .rc-dropdown-item-meta strong {
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        color: inherit !important;
+        line-height: 1.25 !important;
+    }
+
+    .rc-dropdown-item-meta small {
+        font-size: 12px !important;
+        color: var(--color-fog, #9494a9) !important;
+        margin-top: 2px !important;
+    }
+
+    /* 8. Opción Cerrar Sesión con acento rojizo/coral */
+    .rc-dropdown-item--logout {
+        color: #ff8597 !important;
+        margin-top: 4px !important;
+    }
+
+    .rc-dropdown-item--logout svg {
+        stroke: #ff6b81 !important;
+    }
+
+    .rc-dropdown-item--logout:hover,
+    .rc-dropdown-item--logout:focus-visible,
+    .rc-dropdown-item--logout:active {
+        background: rgba(255, 77, 109, 0.16) !important;
+        color: #ffa4b2 !important;
+    }
+
+    .rc-dropdown-item--logout:hover svg,
+    .rc-dropdown-item--logout:focus-visible svg,
+    .rc-dropdown-item--logout:active svg {
+        stroke: #ffa4b2 !important;
     }
 }

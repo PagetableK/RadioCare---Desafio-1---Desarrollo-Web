@@ -22,9 +22,16 @@ import {
   eliminarCitaDefinitiva,
   subirInformeCita,
   obtenerInformePorCita,
-  RADIOLOGOS_OFICIALES,
+  actualizarCitaAdmin,
   ESTADOS_CITA
 } from "../services/citas.service.js";
+import {
+  inicializarDoctoresSeed,
+  obtenerDoctores,
+  crearDoctor,
+  actualizarDoctor,
+  eliminarDoctor
+} from "../services/doctores.service.js";
 
 /* ==========================================================================
    REFERENCIAS AL DOM
@@ -78,13 +85,47 @@ const fichaRenal         = document.getElementById('ficha-renal');
 const fichaRecordatorio  = document.getElementById('ficha-recordatorio');
 const fichaNotas         = document.getElementById('ficha-notas');
 
+// Modal de reprogramación / edición de cita (#modal-editar-cita-panel)
+const modalEditarCitaPanel    = document.getElementById('modal-editar-cita-panel');
+const modalEditarBackdrop     = document.getElementById('modal-editar-backdrop');
+const btnCerrarModalEditar    = document.getElementById('btn-cerrar-modal-editar');
+const btnCancelarModalEditar  = document.getElementById('btn-cancelar-modal-editar');
+const btnGuardarModalEditar   = document.getElementById('btn-guardar-modal-editar');
+const formEditarCita          = document.getElementById('form-editar-cita-panel');
+const inputEditarId           = document.getElementById('editar-cita-id');
+const inputEditarFecha        = document.getElementById('editar-fecha-panel');
+const selectEditarHorario     = document.getElementById('editar-horario-panel');
+const textareaEditarNotas     = document.getElementById('editar-notas-panel');
+const alertaModalEditar       = document.getElementById('alerta-modal-editar-panel');
+const badgeEditarPacienteSub  = document.getElementById('modal-editar-paciente-sub');
+
+// Modal y Controles de CRUD Dinámico de Doctores (#modal-crud-doctores)
+const btnGestionarDoctores         = document.getElementById('btn-gestionar-doctores');
+const modalCrudDoctores            = document.getElementById('modal-crud-doctores');
+const modalDoctoresBackdrop        = document.getElementById('modal-doctores-backdrop');
+const btnCerrarModalDoctores       = document.getElementById('btn-cerrar-modal-doctores');
+const btnCerrarModalDoctoresFooter = document.getElementById('btn-cerrar-modal-doctores-footer');
+const formDoctorCrud               = document.getElementById('form-doctor-crud');
+const inputDoctorId                = document.getElementById('doctor-crud-id');
+const inputDoctorNombre            = document.getElementById('doctor-crud-nombre');
+const inputDoctorEspecialidad      = document.getElementById('doctor-crud-especialidad');
+const inputDoctorJvpm              = document.getElementById('doctor-crud-jvpm');
+const btnGuardarDoctor             = document.getElementById('btn-guardar-doctor');
+const btnCancelarEdicionDoctor     = document.getElementById('btn-cancelar-edicion-doctor');
+const alertaCrudDoctores           = document.getElementById('alerta-crud-doctores');
+const tablaDoctoresTbody           = document.getElementById('tabla-doctores-tbody');
+const contadorDoctoresBadge        = document.getElementById('contador-doctores-badge');
+const textoModoDoctor              = document.getElementById('texto-modo-doctor');
+
 // Input selector de archivo para subida de informe diagnóstico (PDF / DICOM)
 const inputArchivoInforme = document.getElementById('input-archivo-informe');
 
 /* ==========================================================================
    ESTADO LOCAL EN MEMORIA
    ========================================================================== */
-let todasLasCitas       = [];   // Cache completo desde Firestore
+let todasLasCitas       = [];   // Cache completo de citas desde Firestore
+let listaDoctores       = [];   // Catálogo dinámico de médicos desde Firestore
+let doctorEnEdicionId   = null; // ID del médico en edición en el CRUD
 let citaIdPendiente     = null; // ID en espera de confirmación de eliminación
 let citaIdParaInforme   = null; // ID de cita para subida de informe diagnóstico
 let botonInformeActivo  = null; // Referencia al botón que disparó la subida
@@ -276,6 +317,11 @@ function mostrarToast(mensaje, tipo = 'exito', duracion = 3000) {
 
 /** Abre el modal de confirmación para eliminar una cita. */
 function abrirModalEliminar(citaId) {
+  const cita = todasLasCitas.find(c => c.id === citaId);
+  if (cita && (cita.estado || '').toLowerCase() === 'completada' && Boolean(cita.tieneInforme)) {
+    mostrarToast('Cita cerrada: no se permite eliminar registros con informe médico emitido.', 'advertencia');
+    return;
+  }
   citaIdPendiente = citaId;
   if (!modalEliminar) return;
   modalEliminar.classList.remove('oculto');
@@ -314,7 +360,7 @@ btnConfirmarEliminar?.addEventListener('click', async () => {
     mostrarToast('Cita eliminada definitivamente.', 'exito');
   } catch (err) {
     console.error('Error al eliminar cita:', err);
-    mostrarToast('Error al eliminar la cita. Intente nuevamente.', 'error');
+    mostrarToast(err.message || 'Error al eliminar la cita. Intente nuevamente.', 'error');
   } finally {
     btnConfirmarEliminar.disabled = false;
   }
@@ -323,6 +369,14 @@ btnConfirmarEliminar?.addEventListener('click', async () => {
 // Cierre con Escape para modales
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    if (modalEditarCitaPanel && !modalEditarCitaPanel.classList.contains('oculto') && !modalEditarCitaPanel.hasAttribute('hidden')) {
+      cerrarModalEditarCita();
+      return;
+    }
+    if (modalCrudDoctores && !modalCrudDoctores.classList.contains('oculto') && !modalCrudDoctores.hasAttribute('hidden')) {
+      cerrarModalCrudDoctores();
+      return;
+    }
     if (modalFichaPaciente && !modalFichaPaciente.classList.contains('oculto') && !modalFichaPaciente.hasAttribute('hidden')) {
       cerrarModalFichaPaciente();
       return;
@@ -330,6 +384,541 @@ document.addEventListener('keydown', (e) => {
     if (modalEliminar && !modalEliminar.classList.contains('oculto') && !modalEliminar.hasAttribute('hidden')) {
       cerrarModalEliminar();
       return;
+    }
+  }
+});
+
+/* ==========================================================================
+   MODAL DE REPROGRAMACIÓN / EDICIÓN DE CITA (#modal-editar-cita-panel)
+   ========================================================================== */
+
+/**
+ * Evalúa las restricciones clínicas sobre la fecha y franja horaria:
+ *  - Si es Domingo (0): Bloquea y avisa que la clínica permanece cerrada.
+ *  - Si es Sábado (6): Deshabilita mediodía/tarde, permite únicamente turnos matutinos (6:30 a. m. a 12:00 p. m.).
+ *  - Lunes a Viernes (1-5): Habilita todas las franjas horarias.
+ *
+ * @param {string} fechaStr - Fecha en formato YYYY-MM-DD
+ * @param {string} [horarioPreferido] - Franja horaria a preseleccionar si es válida
+ * @returns {boolean} true si la fecha es hábil (lunes a sábado), false si es domingo o inválida
+ */
+function evaluarFechaHorarioModal(fechaStr, horarioPreferido = null) {
+  if (!fechaStr) return false;
+  const partes = fechaStr.split('-');
+  if (partes.length !== 3) return false;
+  const anio = parseInt(partes[0], 10);
+  const mes = parseInt(partes[1], 10);
+  const dia = parseInt(partes[2], 10);
+  const fechaObj = new Date(anio, mes - 1, dia);
+
+  if (isNaN(fechaObj.getTime())) return false;
+
+  const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+  const optMediodia = selectEditarHorario?.querySelector('option[value="mediodia"]');
+  const optTarde = selectEditarHorario?.querySelector('option[value="tarde"]');
+
+  if (diaSemana === 0) {
+    // Domingo: Clínica cerrada
+    if (alertaModalEditar) {
+      alertaModalEditar.innerHTML = `
+        <div style="background: rgba(255, 77, 109, 0.15); border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+          ⚠️ La clínica permanece cerrada los domingos. Por favor seleccione una fecha de lunes a sábado.
+        </div>
+      `;
+    }
+    if (optMediodia) optMediodia.disabled = true;
+    if (optTarde) optTarde.disabled = true;
+    return false;
+  }
+
+  if (diaSemana === 6) {
+    // Sábado: Exclusivamente turnos matutinos de 6:30 a. m. a 12:00 p. m.
+    if (alertaModalEditar) {
+      alertaModalEditar.innerHTML = `
+        <div style="background: rgba(255, 183, 3, 0.15); border: 1px solid #ffc425; color: #ffc425; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+          ℹ️ Los sábados la clínica atiende únicamente turnos matutinos (6:30 a. m. a 12:00 p. m.).
+        </div>
+      `;
+    }
+    if (optMediodia) optMediodia.disabled = true;
+    if (optTarde) optTarde.disabled = true;
+
+    // Si el horario seleccionado es vespertino, cambiar a turno matutino
+    if (selectEditarHorario && (selectEditarHorario.value === 'mediodia' || selectEditarHorario.value === 'tarde')) {
+      selectEditarHorario.value = 'manana-temprana';
+    }
+    if (horarioPreferido && (horarioPreferido === 'manana-temprana' || horarioPreferido === 'manana')) {
+      if (selectEditarHorario) selectEditarHorario.value = horarioPreferido;
+    }
+    return true;
+  }
+
+  // Lunes a Viernes: Todas las franjas horarias disponibles
+  if (alertaModalEditar) alertaModalEditar.innerHTML = '';
+  if (optMediodia) optMediodia.disabled = false;
+  if (optTarde) optTarde.disabled = false;
+  if (horarioPreferido && selectEditarHorario) {
+    selectEditarHorario.value = horarioPreferido;
+  }
+  return true;
+}
+
+/**
+ * Abre el modal de reprogramación/edición precargado con los datos de la cita.
+ * @param {object} cita
+ */
+function abrirModalEditarCita(cita) {
+  if (!modalEditarCitaPanel || !cita) return;
+
+  const citaCerrada = (cita.estado || '').toLowerCase() === 'completada' && Boolean(cita.tieneInforme);
+  if (citaCerrada) {
+    mostrarToast('Cita cerrada: no es posible editar fecha, horario ni notas.', 'advertencia');
+    return;
+  }
+
+  ultimoElementoFoco = document.activeElement;
+
+  if (inputEditarId) inputEditarId.value = cita.id;
+
+  const datosPac = extraerDatosPaciente(cita);
+  if (badgeEditarPacienteSub) {
+    badgeEditarPacienteSub.textContent = `Paciente: ${datosPac.nombreCompleto}`;
+  }
+
+  const fechaActual = extraerFecha(cita);
+  if (inputEditarFecha) {
+    inputEditarFecha.value = fechaActual;
+  }
+
+  const horarioActual = extraerHorario(cita);
+  evaluarFechaHorarioModal(fechaActual, horarioActual);
+
+  const notasActuales = cita.clinica?.notas || cita.notas || '';
+  if (textareaEditarNotas) {
+    textareaEditarNotas.value = notasActuales;
+  }
+
+  modalEditarCitaPanel.classList.remove('oculto');
+  modalEditarCitaPanel.removeAttribute('hidden');
+  document.body.style.overflow = 'hidden';
+
+  setTimeout(() => {
+    inputEditarFecha?.focus();
+  }, 50);
+}
+
+/**
+ * Cierra el modal de reprogramación/edición y restaura el scroll y foco accesible.
+ */
+function cerrarModalEditarCita() {
+  if (!modalEditarCitaPanel) return;
+  modalEditarCitaPanel.classList.add('oculto');
+  modalEditarCitaPanel.setAttribute('hidden', 'true');
+  document.body.style.overflow = '';
+  if (alertaModalEditar) alertaModalEditar.innerHTML = '';
+
+  if (ultimoElementoFoco && typeof ultimoElementoFoco.focus === 'function') {
+    ultimoElementoFoco.focus();
+  }
+}
+
+// Listeners del modal de reprogramación/edición de citas
+btnCerrarModalEditar?.addEventListener('click', cerrarModalEditarCita);
+btnCancelarModalEditar?.addEventListener('click', cerrarModalEditarCita);
+modalEditarBackdrop?.addEventListener('click', cerrarModalEditarCita);
+
+inputEditarFecha?.addEventListener('input', (e) => {
+  evaluarFechaHorarioModal(e.target.value);
+});
+inputEditarFecha?.addEventListener('change', (e) => {
+  evaluarFechaHorarioModal(e.target.value);
+});
+
+formEditarCita?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const citaId = inputEditarId?.value;
+  const nuevaFecha = inputEditarFecha?.value?.trim();
+  const nuevoHorario = selectEditarHorario?.value?.trim();
+  const nuevasNotas = textareaEditarNotas?.value?.trim() || '';
+
+  if (!citaId) return;
+
+  if (!nuevaFecha) {
+    if (alertaModalEditar) {
+      alertaModalEditar.innerHTML = `
+        <div style="background: rgba(255, 77, 109, 0.15); border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+          Por favor seleccione una fecha para la cita.
+        </div>
+      `;
+    }
+    inputEditarFecha?.focus();
+    return;
+  }
+
+  const esValida = evaluarFechaHorarioModal(nuevaFecha, nuevoHorario);
+  if (!esValida) {
+    inputEditarFecha?.focus();
+    return;
+  }
+
+  if (!nuevoHorario) {
+    if (alertaModalEditar) {
+      alertaModalEditar.innerHTML = `
+        <div style="background: rgba(255, 77, 109, 0.15); border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+          Por favor seleccione una franja horaria válida.
+        </div>
+      `;
+    }
+    selectEditarHorario?.focus();
+    return;
+  }
+
+  // Validación de franja horaria en día sábado
+  const partes = nuevaFecha.split('-');
+  const diaSemana = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10)).getDay();
+  if (diaSemana === 6 && (nuevoHorario === 'mediodia' || nuevoHorario === 'tarde')) {
+    if (alertaModalEditar) {
+      alertaModalEditar.innerHTML = `
+        <div style="background: rgba(255, 77, 109, 0.15); border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+          En día sábado solo se permiten turnos matutinos (6:30 a. m. a 12:00 p. m.).
+        </div>
+      `;
+    }
+    selectEditarHorario?.focus();
+    return;
+  }
+
+  btnGuardarModalEditar.disabled = true;
+  try {
+    await actualizarCitaAdmin(citaId, {
+      'agenda.fecha': nuevaFecha,
+      'agenda.horario': nuevoHorario,
+      'clinica.notas': nuevasNotas
+    });
+
+    // Actualizar caché en memoria
+    const idx = todasLasCitas.findIndex(c => c.id === citaId);
+    if (idx !== -1) {
+      if (!todasLasCitas[idx].agenda) todasLasCitas[idx].agenda = {};
+      todasLasCitas[idx].agenda.fecha = nuevaFecha;
+      todasLasCitas[idx].agenda.horario = nuevoHorario;
+      todasLasCitas[idx].fecha = nuevaFecha;
+      todasLasCitas[idx].horario = nuevoHorario;
+      if (!todasLasCitas[idx].clinica) todasLasCitas[idx].clinica = {};
+      todasLasCitas[idx].clinica.notas = nuevasNotas;
+      todasLasCitas[idx].notas = nuevasNotas;
+    }
+
+    cerrarModalEditarCita();
+    calcularKPIs(todasLasCitas);
+    aplicarFiltrosYRenderizar();
+    mostrarToast('Cita reprogramada y actualizada correctamente.', 'exito');
+  } catch (err) {
+    console.error('Error al actualizar cita (admin):', err);
+    if (alertaModalEditar) {
+      alertaModalEditar.innerHTML = `
+        <div style="background: rgba(255, 77, 109, 0.15); border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+          ${err.message || 'Error al guardar los cambios en Firestore.'}
+        </div>
+      `;
+    }
+  } finally {
+    btnGuardarModalEditar.disabled = false;
+  }
+});
+
+/* ==========================================================================
+   CRUD DINÁMICO DE DOCTORES (#modal-crud-doctores)
+   ========================================================================== */
+
+function mostrarAlertaCrudDoctores(mensaje, tipo = 'error') {
+  if (!alertaCrudDoctores) return;
+  const esError = tipo === 'error';
+  const colorBorde = esError ? '#ff4d6d' : 'var(--color-mint-vital)';
+  const colorFondo = esError ? 'rgba(255, 77, 109, 0.15)' : 'rgba(0, 255, 170, 0.15)';
+  const colorTexto = esError ? '#ffb3c1' : 'var(--color-mint-vital)';
+  const icono = esError ? '⚠️' : '✅';
+
+  alertaCrudDoctores.innerHTML = `
+    <div style="background: ${colorFondo}; border: 1px solid ${colorBorde}; color: ${colorTexto}; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+      ${icono} ${mensaje}
+    </div>
+  `;
+}
+
+/**
+ * Abre el modal de CRUD dinámico de doctores.
+ */
+function abrirModalCrudDoctores() {
+  if (!modalCrudDoctores) return;
+  ultimoElementoFoco = document.activeElement;
+  resetearFormDoctor();
+  renderizarTablaDoctores();
+  modalCrudDoctores.classList.remove('oculto');
+  modalCrudDoctores.removeAttribute('hidden');
+  document.body.style.overflow = 'hidden';
+
+  setTimeout(() => {
+    inputDoctorNombre?.focus();
+  }, 50);
+}
+
+/**
+ * Cierra el modal de CRUD de doctores y restaura foco accesible.
+ */
+function cerrarModalCrudDoctores() {
+  if (!modalCrudDoctores) return;
+  modalCrudDoctores.classList.add('oculto');
+  modalCrudDoctores.setAttribute('hidden', 'true');
+  document.body.style.overflow = '';
+  resetearFormDoctor();
+
+  if (ultimoElementoFoco && typeof ultimoElementoFoco.focus === 'function') {
+    ultimoElementoFoco.focus();
+  }
+}
+
+/**
+ * Restablece el formulario de doctores al modo de creación.
+ */
+function resetearFormDoctor() {
+  doctorEnEdicionId = null;
+  if (inputDoctorId) inputDoctorId.value = '';
+  if (inputDoctorNombre) inputDoctorNombre.value = '';
+  if (inputDoctorEspecialidad) inputDoctorEspecialidad.value = '';
+  if (inputDoctorJvpm) inputDoctorJvpm.value = '';
+  if (btnGuardarDoctor) btnGuardarDoctor.textContent = 'Guardar Médico';
+  if (btnCancelarEdicionDoctor) btnCancelarEdicionDoctor.style.display = 'none';
+  if (textoModoDoctor) textoModoDoctor.textContent = 'Agregar Nuevo Médico Radiólogo';
+  if (alertaCrudDoctores) alertaCrudDoctores.innerHTML = '';
+}
+
+/**
+ * Precarga los datos de un doctor en el formulario para editarlo.
+ * @param {object} docData
+ */
+function cargarDoctorEnEdicion(docData) {
+  if (!docData) return;
+  doctorEnEdicionId = docData.id;
+  if (inputDoctorId) inputDoctorId.value = docData.id;
+  if (inputDoctorNombre) inputDoctorNombre.value = docData.nombre || '';
+  if (inputDoctorEspecialidad) inputDoctorEspecialidad.value = docData.especialidad || '';
+  if (inputDoctorJvpm) inputDoctorJvpm.value = docData.jvpm || '';
+  if (btnGuardarDoctor) btnGuardarDoctor.textContent = 'Guardar Cambios';
+  if (btnCancelarEdicionDoctor) btnCancelarEdicionDoctor.style.display = 'inline-block';
+  if (textoModoDoctor) textoModoDoctor.textContent = `Editar Médico: ${docData.nombre}`;
+  if (alertaCrudDoctores) alertaCrudDoctores.innerHTML = '';
+
+  inputDoctorNombre?.focus();
+}
+
+/**
+ * Puebla el selector <select id="filtro-radiologo"> con los médicos activos en Firestore.
+ * Preserva la selección activa del usuario si sigue existiendo.
+ */
+function poblarSelectorFiltroDoctores() {
+  if (!selectRadiologo) return;
+  const valorActual = selectRadiologo.value || '';
+
+  const opciones = [
+    '<option value="">Todos los radiólogos</option>',
+    '<option value="sin-asignar">Sin asignar</option>'
+  ];
+
+  listaDoctores.forEach(docData => {
+    const nombre = typeof docData === 'string' ? docData : docData.nombre;
+    opciones.push(`<option value="${nombre}">${nombre}</option>`);
+  });
+
+  selectRadiologo.innerHTML = opciones.join('');
+
+  // Mantener la selección si el médico aún existe en el catálogo
+  const existe = Array.from(selectRadiologo.options).some(o => o.value === valorActual);
+  if (existe) {
+    selectRadiologo.value = valorActual;
+  } else {
+    selectRadiologo.value = '';
+  }
+}
+
+/**
+ * Renderiza la lista/tabla de doctores registrados dentro del modal CRUD.
+ */
+function renderizarTablaDoctores() {
+  if (!tablaDoctoresTbody) return;
+
+  if (contadorDoctoresBadge) {
+    contadorDoctoresBadge.textContent = `${listaDoctores.length} médico${listaDoctores.length !== 1 ? 's' : ''}`;
+  }
+
+  if (listaDoctores.length === 0) {
+    tablaDoctoresTbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="text-align: center; color: var(--color-fog); padding: 24px;">
+          No hay médicos registrados actualmente. Utilice el formulario superior para agregar uno.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tablaDoctoresTbody.innerHTML = listaDoctores.map(docData => {
+    const nombre = docData.nombre || 'Sin nombre';
+    const especialidad = docData.especialidad || 'General';
+    const jvpm = docData.jvpm ? `JVPM: ${docData.jvpm}` : '<span style="color:var(--color-fog);">–</span>';
+
+    return `
+      <tr>
+        <td style="padding: 10px 14px; font-weight: 600; color: var(--color-cloud-white);">
+          ${nombre}
+        </td>
+        <td style="padding: 10px 14px; color: var(--color-ash);">
+          ${especialidad}
+        </td>
+        <td style="padding: 10px 14px; font-size: 12px; color: var(--color-fog);">
+          ${jvpm}
+        </td>
+        <td style="padding: 10px 14px; text-align: center;">
+          <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+            <button
+              type="button"
+              class="btn-doctor-accion btn-doctor-editar"
+              data-id="${docData.id}"
+              title="Editar datos de ${nombre}"
+              aria-label="Editar datos de ${nombre}"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="btn-doctor-accion btn-doctor-eliminar"
+              data-id="${docData.id}"
+              title="Eliminar médico ${nombre}"
+              aria-label="Eliminar médico ${nombre}"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/**
+ * Consulta la colección 'doctores' en Firestore (ejecutando seed inicial si procede),
+ * y sincroniza todos los componentes de la interfaz.
+ */
+async function cargarDoctores() {
+  try {
+    listaDoctores = await inicializarDoctoresSeed();
+    poblarSelectorFiltroDoctores();
+    renderizarTablaDoctores();
+  } catch (err) {
+    console.error('Error al inicializar o cargar doctores:', err);
+    mostrarToast('Error al cargar la lista de médicos.', 'error');
+  }
+}
+
+// Listeners del modal de CRUD de doctores
+btnGestionarDoctores?.addEventListener('click', abrirModalCrudDoctores);
+btnCerrarModalDoctores?.addEventListener('click', cerrarModalCrudDoctores);
+btnCerrarModalDoctoresFooter?.addEventListener('click', cerrarModalCrudDoctores);
+modalDoctoresBackdrop?.addEventListener('click', cerrarModalCrudDoctores);
+btnCancelarEdicionDoctor?.addEventListener('click', resetearFormDoctor);
+
+formDoctorCrud?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nombre = (inputDoctorNombre?.value || '').trim();
+  const especialidad = (inputDoctorEspecialidad?.value || '').trim();
+  const jvpm = (inputDoctorJvpm?.value || '').trim();
+
+  if (!nombre) {
+    mostrarAlertaCrudDoctores('El nombre completo del médico es obligatorio.', 'error');
+    inputDoctorNombre?.focus();
+    return;
+  }
+  if (!especialidad) {
+    mostrarAlertaCrudDoctores('La especialidad del médico es obligatoria.', 'error');
+    inputDoctorEspecialidad?.focus();
+    return;
+  }
+
+  btnGuardarDoctor.disabled = true;
+  try {
+    if (doctorEnEdicionId) {
+      await actualizarDoctor(doctorEnEdicionId, { nombre, especialidad, jvpm });
+      mostrarToast(`Médico "${nombre}" actualizado correctamente.`, 'exito');
+    } else {
+      await crearDoctor({ nombre, especialidad, jvpm });
+      mostrarToast(`Médico "${nombre}" registrado exitosamente.`, 'exito');
+    }
+
+    resetearFormDoctor();
+    // Actualizar catálogo dinámico desde Firestore
+    listaDoctores = await obtenerDoctores();
+    poblarSelectorFiltroDoctores();
+    renderizarTablaDoctores();
+
+    // Sincronización reactiva: actualizar tabla de citas y todos los selects de asignación de médico
+    aplicarFiltrosYRenderizar();
+  } catch (err) {
+    console.error('Error al guardar doctor en Firestore:', err);
+    mostrarAlertaCrudDoctores(err.message || 'Error al guardar el médico en Firestore.', 'error');
+  } finally {
+    btnGuardarDoctor.disabled = false;
+  }
+});
+
+tablaDoctoresTbody?.addEventListener('click', async (e) => {
+  // Editar médico (precargar en formulario)
+  const btnEditar = e.target.closest('.btn-doctor-editar');
+  if (btnEditar) {
+    const id = btnEditar.dataset.id;
+    const docEncontrado = listaDoctores.find(d => d.id === id);
+    if (docEncontrado) {
+      cargarDoctorEnEdicion(docEncontrado);
+    }
+    return;
+  }
+
+  // Eliminar médico (con confirmación)
+  const btnEliminar = e.target.closest('.btn-doctor-eliminar');
+  if (btnEliminar) {
+    const id = btnEliminar.dataset.id;
+    const docEncontrado = listaDoctores.find(d => d.id === id);
+    if (!docEncontrado) return;
+
+    const confirmado = window.confirm(`¿Está seguro de eliminar al ${docEncontrado.nombre} del catálogo médico? Esta acción no se puede deshacer.`);
+    if (!confirmado) return;
+
+    btnEliminar.disabled = true;
+    try {
+      await eliminarDoctor(id);
+      mostrarToast(`Médico "${docEncontrado.nombre}" eliminado del catálogo.`, 'exito');
+
+      if (doctorEnEdicionId === id) {
+        resetearFormDoctor();
+      }
+
+      listaDoctores = await obtenerDoctores();
+      poblarSelectorFiltroDoctores();
+      renderizarTablaDoctores();
+
+      // Sincronización reactiva de todos los selectores de médico en la tabla de citas
+      aplicarFiltrosYRenderizar();
+    } catch (err) {
+      console.error('Error al eliminar doctor:', err);
+      mostrarToast('Error al eliminar el médico de Firestore.', 'error');
+      btnEliminar.disabled = false;
     }
   }
 });
@@ -866,10 +1455,12 @@ function generarBadgeEstado(estado) {
 
 /**
  * Genera el selector <select> de cambio de estado para cada fila de la tabla.
+ * Bloquea el selector si la cita está completada y ya cuenta con informe subido (expediente cerrado).
  * @param {object} cita
  * @returns {string}
  */
 function generarSelectEstado(cita) {
+  const citaCerrada = (cita.estado || '').toLowerCase() === 'completada' && Boolean(cita.tieneInforme);
   const estadoActual = (cita.estado || 'pendiente').toLowerCase();
   const opciones = ESTADOS_CITA.map(e =>
     `<option value="${e}" ${e === estadoActual ? 'selected' : ''}>
@@ -882,7 +1473,8 @@ function generarSelectEstado(cita) {
       class="select-accion select-estado-cita"
       data-id="${cita.id}"
       aria-label="Cambiar estado de cita"
-      title="Cambiar estado"
+      ${citaCerrada ? 'disabled' : ''}
+      title="${citaCerrada ? 'No se puede cambiar el estado de una cita completada con informe adjunto' : 'Cambiar estado'}"
     >
       ${opciones}
     </select>
@@ -891,22 +1483,32 @@ function generarSelectEstado(cita) {
 
 /**
  * Genera el selector <select> de asignación de radiólogo para cada fila.
+ * Aplica la regla estricta de bloqueo condicional según el estado de la cita:
+ * Bloqueado (disabled) si el estado es 'confirmada', 'completada' o si es una cita cerrada con informe.
+ * En cualquier otro estado ('pendiente', 'cancelada'):
+ *   disabled = false, title="Asignar radiólogo"
  * @param {object} cita
  * @returns {string}
  */
 function generarSelectRadiologo(cita) {
   const medicoActual = cita.medicoAsignado || '';
+  const estadoNorm = (cita.estado || 'pendiente').toLowerCase();
+  const citaCerrada = estadoNorm === 'completada' && Boolean(cita.tieneInforme);
+  const estaBloqueado = (estadoNorm === 'confirmada' || estadoNorm === 'completada' || citaCerrada);
+
   const opcionVacia = `<option value="" ${!medicoActual ? 'selected' : ''}>Sin asignar</option>`;
-  const opciones = RADIOLOGOS_OFICIALES.map(m =>
-    `<option value="${m}" ${m === medicoActual ? 'selected' : ''}>${m}</option>`
-  ).join('');
+  const opciones = listaDoctores.map(docData => {
+    const nombre = typeof docData === 'string' ? docData : docData.nombre;
+    return `<option value="${nombre}" ${nombre === medicoActual ? 'selected' : ''}>${nombre}</option>`;
+  }).join('');
 
   return `
     <select
       class="select-accion select-radiologo-cita"
       data-id="${cita.id}"
       aria-label="Asignar médico radiólogo"
-      title="Asignar radiólogo"
+      ${estaBloqueado ? 'disabled' : ''}
+      title="${estaBloqueado ? 'El médico no puede modificarse mientras la cita esté confirmada o aceptada' : 'Asignar radiólogo'}"
     >
       ${opcionVacia}
       ${opciones}
@@ -929,6 +1531,7 @@ function renderizarTablaCitas(citas) {
     const horario    = HORARIOS_MAP[extraerHorario(cita)] || extraerHorario(cita) || '–';
     const medico     = cita.medicoAsignado || '<span style="color:var(--color-fog);">Sin asignar</span>';
     const estadoNorm = (cita.estado || 'pendiente').toLowerCase();
+    const citaCerrada = (cita.estado || '').toLowerCase() === 'completada' && Boolean(cita.tieneInforme);
 
     // 1. Columna PACIENTE: Nombre, DUI y botón circular de ficha clínica (sin badge ni texto de Para mí o Familiar)
     const pacienteHtml = `
@@ -1034,21 +1637,37 @@ function renderizarTablaCitas(citas) {
         </td>
         <td>${celdaInformeHtml}</td>
         <td style="text-align:center;">
-          <button
-            type="button"
-            class="btn-eliminar-cita"
-            data-id="${cita.id}"
-            aria-label="Eliminar cita de ${nombreCompleto}"
-            title="Eliminar cita definitivamente"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14H6L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/>
-              <path d="M9 6V4h6v2"/>
-            </svg>
-          </button>
+          <div class="tabla-acciones-botones">
+            <button
+              type="button"
+              class="btn-editar-cita-panel"
+              data-id="${cita.id}"
+              ${citaCerrada ? 'disabled' : ''}
+              title="${citaCerrada ? 'Cita cerrada: no es posible editar fecha, horario ni notas' : 'Editar fecha, horario o notas'}"
+              aria-label="Editar fecha, horario o notas de ${nombreCompleto}"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="btn-eliminar-cita"
+              data-id="${cita.id}"
+              ${citaCerrada ? 'disabled' : ''}
+              aria-label="Eliminar cita de ${nombreCompleto}"
+              title="${citaCerrada ? 'Cita cerrada: no se permite eliminar registros con informe médico emitido' : 'Eliminar cita definitivamente'}"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -1065,7 +1684,7 @@ function renderizarTablaCitas(citas) {
           <th>Estado</th>
           <th>ACCIONES RÁPIDAS</th>
           <th>INFORME / ARCHIVOS</th>
-          <th style="text-align:center;">ELIMINAR</th>
+          <th style="text-align:center;">ACCIONES</th>
         </tr>
       </thead>
       <tbody>
@@ -1088,9 +1707,21 @@ tablaContenedor?.addEventListener('change', async (e) => {
 
   // ── Cambio de Estado ────────────────────────────────────────────────────
   if (target.classList.contains('select-estado-cita')) {
+    if (target.disabled || target.hasAttribute('disabled')) return;
+
     const citaId     = target.dataset.id;
     const nuevoEstado = target.value;
     if (!citaId) return;
+
+    const cita = todasLasCitas.find(c => c.id === citaId);
+    const citaCerrada = (cita?.estado || '').toLowerCase() === 'completada' && Boolean(cita?.tieneInforme);
+    if (citaCerrada) {
+      target.value = cita?.estado || 'completada';
+      target.disabled = true;
+      target.title = 'No se puede cambiar el estado de una cita completada con informe adjunto';
+      mostrarToast('No se puede cambiar el estado de una cita completada con informe adjunto.', 'error');
+      return;
+    }
 
     target.disabled = true;
     try {
@@ -1100,18 +1731,38 @@ tablaContenedor?.addEventListener('change', async (e) => {
       const idx = todasLasCitas.findIndex(c => c.id === citaId);
       if (idx !== -1) todasLasCitas[idx].estado = nuevoEstado;
 
+      // Actualizar inmediatamente el estado disabled del select del médico en esa misma fila
+      const fila = target.closest('tr');
+      const selectMedico = fila?.querySelector('.select-radiologo-cita');
+      if (selectMedico) {
+        const estadoNorm = (nuevoEstado || '').toLowerCase();
+        const bloqueado = (estadoNorm === 'confirmada' || estadoNorm === 'aceptada');
+        selectMedico.disabled = bloqueado;
+        if (bloqueado) {
+          selectMedico.style.opacity = '0.6';
+          selectMedico.style.cursor = 'not-allowed';
+          selectMedico.title = 'El médico no puede modificarse mientras la cita esté confirmada o aceptada';
+        } else {
+          selectMedico.style.opacity = '';
+          selectMedico.style.cursor = '';
+          selectMedico.title = 'Asignar radiólogo';
+        }
+      }
+
       calcularKPIs(todasLasCitas);
       // Al cambiar a 'completada', aplicarFiltrosYRenderizar() habilita el botón de informe de inmediato
       aplicarFiltrosYRenderizar();
       mostrarToast(`Estado actualizado a "${nuevoEstado}" correctamente.`, 'exito');
     } catch (err) {
       console.error('Error al cambiar estado:', err);
-      mostrarToast('No se pudo actualizar el estado. Intente de nuevo.', 'error');
+      mostrarToast(err.message || 'No se pudo actualizar el estado. Intente de nuevo.', 'error');
       // Revertir visualmente
       const cita = todasLasCitas.find(c => c.id === citaId);
       if (cita) target.value = cita.estado || 'pendiente';
     } finally {
-      target.disabled = false;
+      const cita = todasLasCitas.find(c => c.id === citaId);
+      const cerrada = (cita?.estado || '').toLowerCase() === 'completada' && Boolean(cita?.tieneInforme);
+      target.disabled = cerrada;
     }
     return;
   }
@@ -1236,10 +1887,38 @@ tablaContenedor?.addEventListener('click', async (e) => {
     return;
   }
 
-  // 4. Eliminar cita (modal de confirmación)
+  // 4. Reprogramar / editar cita médica (Modal con tema oscuro de RadioCare)
+  const btnEditarCita = e.target.closest('.btn-editar-cita-panel');
+  if (btnEditarCita) {
+    if (btnEditarCita.disabled || btnEditarCita.hasAttribute('disabled')) {
+      return;
+    }
+    const citaId = btnEditarCita.dataset.id;
+    const cita = todasLasCitas.find(c => c.id === citaId);
+    const citaCerrada = (cita?.estado || '').toLowerCase() === 'completada' && Boolean(cita?.tieneInforme);
+    if (citaCerrada) {
+      mostrarToast('Cita cerrada: no es posible editar fecha, horario ni notas.', 'advertencia');
+      return;
+    }
+    if (cita) {
+      abrirModalEditarCita(cita);
+    }
+    return;
+  }
+
+  // 5. Eliminar cita (modal de confirmación)
   const btnEliminar = e.target.closest('.btn-eliminar-cita');
   if (btnEliminar) {
+    if (btnEliminar.disabled || btnEliminar.hasAttribute('disabled')) {
+      return;
+    }
     const citaId = btnEliminar.dataset.id;
+    const cita = todasLasCitas.find(c => c.id === citaId);
+    const citaCerrada = (cita?.estado || '').toLowerCase() === 'completada' && Boolean(cita?.tieneInforme);
+    if (citaCerrada) {
+      mostrarToast('Cita cerrada: no se permite eliminar registros con informe médico emitido.', 'advertencia');
+      return;
+    }
     if (citaId) abrirModalEliminar(citaId);
     return;
   }
@@ -1318,7 +1997,8 @@ async function revalidarSesionCoordinador() {
       window.location.replace('acceso.html');
       return;
     }
-    // Recargar datos al volver desde BFCache
+    // Recargar datos clínicos y catálogo de médicos al volver desde BFCache
+    await cargarDoctores();
     await cargarTodasLasCitas();
   } catch (error) {
     console.error('Error en revalidación Anti-BFCache del panel:', error);
@@ -1373,6 +2053,7 @@ onAuthChange(async ({ authUser, userData }) => {
     infoEl.textContent = `Sesión activa como Coordinador(a) Clínico(a) · ${userData.email || ''}`;
   }
 
-  // 3. Cargar todas las citas desde Firestore
+  // 3. Inicializar catálogo dinámico de médicos y cargar citas desde Firestore
+  await cargarDoctores();
   await cargarTodasLasCitas();
 });

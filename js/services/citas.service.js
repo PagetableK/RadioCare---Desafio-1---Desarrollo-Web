@@ -234,6 +234,7 @@ export async function obtenerTodasLasCitas() {
 /**
  * Actualiza el campo 'estado' de una cita y registra la marca de tiempo 'updatedAt'.
  * Estados válidos: "pendiente" | "confirmada" | "completada" | "cancelada".
+ * Valida regla de integridad clínica: una cita completada con informe diagnóstico emitido no puede modificarse.
  * @param {string} citaId    - ID del documento en la colección 'citas'.
  * @param {string} nuevoEstado - Nuevo valor del campo estado.
  * @returns {Promise<boolean>}
@@ -245,6 +246,17 @@ export async function cambiarEstadoCita(citaId, nuevoEstado) {
   }
   try {
     const citaRef = doc(db, 'citas', citaId);
+    const docSnap = await getDoc(citaRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("La cita médica seleccionada no existe en el sistema.");
+    }
+
+    const citaActual = docSnap.data();
+    if ((citaActual.estado || '').toLowerCase() === 'completada' && citaActual.tieneInforme === true) {
+      throw new Error("Operación denegada: la cita ya cuenta con un informe diagnóstico emitido y no puede modificarse ni eliminarse.");
+    }
+
     await updateDoc(citaRef, {
       estado: nuevoEstado,
       updatedAt: serverTimestamp()
@@ -257,8 +269,7 @@ export async function cambiarEstadoCita(citaId, nuevoEstado) {
 }
 
 /**
- * Asigna el médico radiólogo responsable de una cita.
- * El nombre debe pertenecer al listado oficial de RADIOLOGOS_OFICIALES.
+ * Asigna el médico radiólogo responsable de una cita en Firestore.
  * Almacena el valor en 'medicoAsignado' y registra 'updatedAt'.
  * @param {string} citaId       - ID del documento en la colección 'citas'.
  * @param {string} nombreMedico - Nombre del radiólogo a asignar (o cadena vacía para desasignar).
@@ -267,18 +278,10 @@ export async function cambiarEstadoCita(citaId, nuevoEstado) {
 export async function asignarRadiologo(citaId, nombreMedico) {
   if (!citaId) throw new Error("ID de cita requerido para asignar radiólogo.");
 
-  // Permitir cadena vacía para desasignar, pero validar si se especifica un nombre
-  if (nombreMedico && !RADIOLOGOS_OFICIALES.includes(nombreMedico)) {
-    throw new Error(
-      `Radiólogo inválido: "${nombreMedico}". ` +
-      `Personal autorizado: ${RADIOLOGOS_OFICIALES.join(', ')}.`
-    );
-  }
-
   try {
     const citaRef = doc(db, 'citas', citaId);
     await updateDoc(citaRef, {
-      medicoAsignado: nombreMedico || null,
+      medicoAsignado: nombreMedico ? String(nombreMedico).trim() : null,
       updatedAt: serverTimestamp()
     });
     return true;
@@ -289,8 +292,63 @@ export async function asignarRadiologo(citaId, nombreMedico) {
 }
 
 /**
+ * Actualiza los datos de una cita médica desde el panel administrativo del coordinador.
+ * Permite reprogramar fecha, franja horaria y notas clínicas en tiempo real.
+ * Valida regla de integridad clínica: una cita completada con informe diagnóstico emitido no puede modificarse.
+ * @param {string} citaId - Identificador del documento en Firestore.
+ * @param {object} nuevosDatos - Campos a actualizar (ej. { 'agenda.fecha': ..., 'agenda.horario': ..., 'clinica.notas': ... }).
+ * @returns {Promise<boolean>}
+ */
+export async function actualizarCitaAdmin(citaId, nuevosDatos) {
+  if (!citaId) {
+    throw new Error("El ID de la cita es obligatorio para modificarla.");
+  }
+  if (!nuevosDatos || typeof nuevosDatos !== 'object') {
+    throw new Error("Se requieren datos válidos para actualizar la cita.");
+  }
+
+  try {
+    const citaRef = doc(db, 'citas', citaId);
+    const docSnap = await getDoc(citaRef);
+
+    if (!docSnap.exists()) {
+      throw new Error("La cita médica seleccionada no existe en el sistema.");
+    }
+
+    const citaActual = docSnap.data();
+    if ((citaActual.estado || '').toLowerCase() === 'completada' && citaActual.tieneInforme === true) {
+      throw new Error("Operación denegada: la cita ya cuenta con un informe diagnóstico emitido y no puede modificarse ni eliminarse.");
+    }
+
+    const payload = {
+      ...nuevosDatos,
+      updatedAt: serverTimestamp()
+    };
+
+    // Sincronizar también campos homólogos de nivel raíz para retrocompatibilidad total
+    if (nuevosDatos['agenda.fecha']) {
+      payload.fecha = nuevosDatos['agenda.fecha'];
+    }
+    if (nuevosDatos['agenda.horario']) {
+      payload.horario = nuevosDatos['agenda.horario'];
+    }
+    if (nuevosDatos['clinica.notas'] !== undefined) {
+      payload.notas = nuevosDatos['clinica.notas'];
+    }
+
+    await updateDoc(citaRef, payload);
+    console.log(`Cita ${citaId} actualizada administrativamente en Firestore.`);
+    return true;
+  } catch (error) {
+    console.error(`Error al actualizar cita ${citaId} (admin):`, error);
+    throw error;
+  }
+}
+
+/**
  * Elimina físicamente el documento de una cita de la colección 'citas' en Firestore.
  * Esta operación es IRREVERSIBLE. Invocar solo tras confirmación explícita del coordinador.
+ * Valida regla de integridad clínica: una cita completada con informe diagnóstico emitido no puede eliminarse.
  * @param {string} citaId - ID del documento a eliminar.
  * @returns {Promise<boolean>}
  */
@@ -298,6 +356,15 @@ export async function eliminarCitaDefinitiva(citaId) {
   if (!citaId) throw new Error("ID de cita requerido para eliminar.");
   try {
     const citaRef = doc(db, 'citas', citaId);
+    const docSnap = await getDoc(citaRef);
+
+    if (docSnap.exists()) {
+      const citaActual = docSnap.data();
+      if ((citaActual.estado || '').toLowerCase() === 'completada' && citaActual.tieneInforme === true) {
+        throw new Error("Operación denegada: la cita ya cuenta con un informe diagnóstico emitido y no puede modificarse ni eliminarse.");
+      }
+    }
+
     await deleteDoc(citaRef);
     console.log(`Cita ${citaId} eliminada definitivamente de Firestore.`);
     return true;
